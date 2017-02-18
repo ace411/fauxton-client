@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<phpunit 
+         colors="true"
+         verbose="true"
+         bootstrap="vendor/autoload.php">
+    <testsuites>
+        <testsuite name="Fauxton Client Test Suite">
+            <directory suffix="Test.php">unit-tests</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>

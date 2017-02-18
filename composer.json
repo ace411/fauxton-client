@@ -1,0 +1,23 @@
+{
+    "name": "chemem/fauxton-client",
+    "description": "A simple CouchDB interaction library.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Lochemem Bruno Michael",
+            "email": "lochbm@gmail.com"
+        }
+    ],
+    "require-dev": {
+        "phpunit/phpunit": "*"
+    },
+    "require": {
+        "php": "^5.4"  
+    },
+    "autoload": {
+        "psr-4": {
+            "Chemem\\Fauxton\\": "src/"
+        }
+    }
+}
