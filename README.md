@@ -29,6 +29,6 @@ creating databases, creating indexes and writing Mango queries.
 
 ## Documentation
 
-I advise that you read the [http://docs.couchdb.org/en/2.0.0/api/index.html](official CouchDB documentation) 
+I advise that you read the [official CouchDB documentation](http://docs.couchdb.org/en/2.0.0/api/index.html) 
 so as to better understand the fauxton-client. Also, reading the fauxton-client wiki is recommended 
 and therefore, prudent.
