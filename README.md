@@ -26,3 +26,9 @@ is a robust web interface designed to ease interactions with CouchDB.
 
 Fauxton-client is a PHP library written for the sole purpose of performing CouchDB operations such as 
 creating databases, creating indexes and writing Mango queries.
+
+## Documentation
+
+I advise that you read the [http://docs.couchdb.org/en/2.0.0/api/index.html](official CouchDB documentation) 
+so as to better understand the fauxton-client. Also, reading the fauxton-client wiki is recommended 
+and therefore, prudent.
