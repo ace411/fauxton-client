@@ -38,3 +38,7 @@ and therefore, prudent.
 In order to run the unit tests, run the following command:
 
 `vendor/bin/phpunit -c phpunit.xml`
+
+## Dealing with problems
+
+Endeavor to create an issue on GitHub when the need arises or send an email to lochbm@gmail.com
