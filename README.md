@@ -32,3 +32,9 @@ creating databases, creating indexes and writing Mango queries.
 I advise that you read the [official CouchDB documentation](http://docs.couchdb.org/en/2.0.0/api/index.html) 
 so as to better understand the fauxton-client. Also, reading the fauxton-client wiki is recommended 
 and therefore, prudent.
+i
+## Running the unit tests
+
+In order to run the unit tests, run the following command:
+
+`vendor/bin/phpunit -c phpunit.xml`
