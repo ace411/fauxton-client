@@ -46,6 +46,10 @@ In order to run the unit tests, run the following command:
 
 `vendor/bin/phpunit -c phpunit.xml`
 
+## Examples
+
+There are a few samples in the tests directory. Please consider using them to further your knowledge.
+
 ## Dealing with problems
 
 Endeavor to create an issue on GitHub when the need arises or send an email to lochbm@gmail.com
