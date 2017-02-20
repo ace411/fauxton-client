@@ -6,6 +6,13 @@ A simple CouchDB interaction library.
 - curl
 - php 5.4+
 
+## Installation
+
+fauxton-client is available on Packagist. To install it, type the following in your preferred
+command-line interface:
+
+`composer require chemem/fauxton-client dev-master`
+
 ## NoSQL vs SQL
 
 Structured Query Language (SQL) is a popular approach to handling back-end information and follows 
