@@ -8,10 +8,22 @@ A simple CouchDB interaction library.
 
 ## Installation
 
-fauxton-client is available on Packagist. To install it, type the following in your preferred
+fauxton-client is available on Packagist. To install it, type the following on your preferred
 command-line interface:
 
 `composer require chemem/fauxton-client dev-master`
+
+
+## Fauxton
+
+Fauxton, formerly Futon, is the name of the Couch Database web client. Like its predecessor, Fauxton 
+is a robust web interface designed to ease interactions with CouchDB.
+
+## The client
+
+Fauxton-client is a PHP library written for the sole purpose of performing CouchDB operations such as 
+creating databases, creating indexes and writing Mango queries.
+
 
 ## NoSQL vs SQL
 
@@ -23,16 +35,6 @@ NoSQL, on the other hand, presents a different paradigm to handling data interac
 NoSQL standards are a manifestation of Basically Available Soft-state Eventually consistent (BASE) practices. 
 Couch Database is a NoSQL database that follows a document-oriented, key-value pair format 
 that is also convenient for manipulating data.
-
-## Fauxton
-
-Fauxton, formerly Futon, is the name of the Couch Database web client. Like its predecessor, Fauxton 
-is a robust web interface designed to ease interactions with CouchDB.
-
-## The client
-
-Fauxton-client is a PHP library written for the sole purpose of performing CouchDB operations such as 
-creating databases, creating indexes and writing Mango queries.
 
 ## Documentation
 
