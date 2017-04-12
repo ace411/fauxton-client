@@ -226,6 +226,6 @@ class DocumentActions
     
     public function getDocsByKey($dbName, array $keys)
     {
-        return $this->executeCurlRequest("{$dbName}/_all_docs", 'POST', json_encode($keys));
+        return $this->executeCurlRequest("{$dbName}/_all_docs?include_docs=true", 'POST', json_encode($keys));
     }
 }
