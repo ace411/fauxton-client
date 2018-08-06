@@ -13,11 +13,18 @@
         "phpunit/phpunit": "*"
     },
     "require": {
-        "php": "^5.4 || ^7.0"  
+        "php": ">=7.0",
+        "lib-curl": "*",
+        "chemem/bingo-functional": "dev-master"  
     },
     "autoload": {
         "psr-4": {
             "Chemem\\Fauxton\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Chemem\\Fauxton\\Tests\\": "unit-tests"
         }
     }
 }
