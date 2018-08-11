@@ -15,8 +15,7 @@
     "require": {
         "php": ">=7.0",
         "lib-curl": "*",
-        "chemem/bingo-functional": "dev-master",
-        "php-http/curl-client": "~1"  
+        "chemem/bingo-functional": "dev-master"  
     },
     "autoload": {
         "psr-4": {
