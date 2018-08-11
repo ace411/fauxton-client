@@ -15,12 +15,18 @@
     "require": {
         "php": ">=7.0",
         "lib-curl": "*",
-        "chemem/bingo-functional": "dev-master"  
+        "chemem/bingo-functional": "dev-master",
+        "php-http/curl-client": "~1"  
     },
     "autoload": {
         "psr-4": {
             "Chemem\\Fauxton\\": "src/"
-        }
+        },
+        "files": [
+            "src/Http/Http.php",
+            "src/Http/Actions.php",
+            "src/FileSystem/Files.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {
