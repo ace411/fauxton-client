@@ -15,7 +15,8 @@
     "require": {
         "php": ">=7.0",
         "lib-curl": "*",
-        "chemem/bingo-functional": "dev-master"  
+        "chemem/bingo-functional": "dev-master",
+        "react/event-loop": "~1"  
     },
     "autoload": {
         "psr-4": {
@@ -31,5 +32,6 @@
         "psr-4": {
             "Chemem\\Fauxton\\Tests\\": "tests"
         }
-    }
+    },
+    "bin": ["fauxton"]
 }
