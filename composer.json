@@ -16,6 +16,7 @@
         "php": ">=7.0",
         "lib-curl": "*",
         "chemem/bingo-functional": "dev-master",
+        "jakub-onderka/php-console-color": "0.1",
         "react/event-loop": "~1"  
     },
     "autoload": {
