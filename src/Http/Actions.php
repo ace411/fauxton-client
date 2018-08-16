@@ -413,7 +413,7 @@ function search(string $database, array $query) : Collection
 {
     return credentialsFromFile()
         ->flatMap(
-            function (array $credentials) use ($database, $query, $params) {
+            function (array $credentials) use ($database, $query) {
                 list($user, $pwd, $local) = $credentials;
                 $urlGen = partialLeft(urlGenerator, 'search', $credentials);
                 
