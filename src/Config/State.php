@@ -60,4 +60,8 @@ class State
             'cloudant' => '{db}/_find'
         ]
     ];
+
+    const CONSOLE_FEATURES = [
+        'prompt' => '>>> '
+    ];
 }
