@@ -77,22 +77,30 @@ function urlGenerator(string $action, array $credentials, array $params) : strin
 }
 
 /**
- * newDb -> String database -> Collection
+ * database :: String opt -> String database -> Collection
  */
 
-const newDb = 'Chemem\\Fauxton\\Http\\newDb';
+const database = 'Chemem\\Fauxton\\Http\\database';
 
-function newDb(string $database) : Collection
+function database(string $opt, string $database) : Collection
 {
     return credentialsFromFile()
         ->flatMap(
-            function (array $credentials) use ($database) {
+            function (array $credentials) use ($opt, $database) {
                 list($user, $pwd, $local) = $credentials;
 
                 return fetch(
                     urlGenerator('dbgen', $credentials, ['{db}' => $database]),
-                    'PUT',
-                    !$local ? identity([]) : [\CURLOPT_HTTPAUTH => true, \CURLOPT_USERPWD => concat(':', $user, $pwd)]
+                    patternMatch(
+                        [
+                            '"delete"' => function () { return 'DELETE'; },
+                            '"create"' => function () { return 'PUT'; },
+                            '"info"' => function () { return 'GET'; },
+                            '_' => function () { return 'PATCH'; }
+                        ],
+                        $opt
+                    ),
+                    (!$local ? [] : [\CURLOPT_HTTPAUTH => true, \CURLOPT_USERPWD => concat(':', $user, $pwd)])
                 )
                     ->flatMap(function (array $response) { return Collection::from($response); });
             }
