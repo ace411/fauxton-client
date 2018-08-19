@@ -31,7 +31,7 @@ function read(IO $fileInit) : IO
             function ($file) {
                 return patternMatch(
                     [
-                        '"empty"' => function () { return json_decode('[]', true); },
+                        '"empty"' => function () { return json_decode('[]', true); }, 
                         '_' => function () use ($file) {
                             $read = compose(
                                 'file_get_contents',
