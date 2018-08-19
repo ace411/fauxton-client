@@ -1,10 +1,10 @@
 {
     "username": {
-        "local": "",
+        "local": "chemem",
         "cloudant": ""
     },
     "password": {
-        "local": "",
+        "local": "mrfauxton",
         "cloudant": ""
     },
     "local": true
