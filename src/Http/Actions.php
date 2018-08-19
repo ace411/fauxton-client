@@ -240,8 +240,8 @@ function modify(string $opt, string $database, array $data, array $update = []) 
                             partialRight('rtrim', '?')
                         )([
                             '{db}' => $database,
-                            '{docId}' => isset($params['_id']) ? $params['_id'] : '',
-                            '{rev}' => isset($params['_rev']) ? $params['_rev'] : ''
+                            '{docId}' => isset($data['_id']) ? $data['_id'] : '',
+                            '{rev}' => isset($data['_rev']) ? $data['_rev'] : ''
                         ])    
                     );
 
