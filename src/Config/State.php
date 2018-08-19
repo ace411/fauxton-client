@@ -62,6 +62,11 @@ class State
     ];
 
     const CONSOLE_FEATURES = [
-        'prompt' => '>>> '
+        'prompt' => '>>> ',
+        'db' => 'Database name: ',
+        'index' => 'Index name: ',
+        'view' => 'View name: ',
+        'dbFields' => 'Fields: ',
+        'docId' => 'Document id: '
     ];
 }
