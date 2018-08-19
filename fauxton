@@ -1,0 +1,63 @@
+#!/usr/bin/env php
+<?php
+
+foreach (
+    [
+        __DIR__ . '/../autoload.php',
+        __DIR__ . '/../../autoload.php',
+        __DIR__ . '/../vendor/autoload.php',
+        __DIR__ . '/vendor/autoload.php',
+        __DIR__ . '/../../vendor/autoload.php'
+    ] as $file
+) {
+    if (file_exists($file)) {
+        define('AUTOLOAD_PHP_FILE', $file);
+        break;
+    }    
+}
+
+if (!defined('AUTOLOAD_PHP_FILE')) {
+     fwrite(STDERR,
+        'You need to set up the project dependencies using the following commands:' . PHP_EOL .
+        'wget http://getcomposer.org/composer.phar' . PHP_EOL .
+        'php composer.phar install' . PHP_EOL
+    );
+    die(1);
+}
+
+require AUTOLOAD_PHP_FILE;
+
+use function \Chemem\Bingo\Functional\Algorithms\{compose, concat, identity, partialLeft, partialRight};
+
+$print = partialRight('json_encode', \JSON_PRETTY_PRINT);
+
+set_error_handler(function ($errNo, $errStr) use ($print) { echo $print(['code' => $errNo, 'message' => $errStr]); });
+
+set_exception_handler(
+    function ($exception) use ($print) { 
+        echo $print([
+            'error' => $exception->getCode(),
+            'message' => $exception->getMessage()
+        ]);
+        
+        return false;
+    }
+);
+
+echo concat(\PHP_EOL, 'Fauxton Console', 'Built by Lochemem Bruno Michael', identity(''));
+
+function main()
+{
+    $repl = compose(
+        \Chemem\Fauxton\Console\fetch,
+        \Chemem\Fauxton\Console\parse,
+        \Chemem\Fauxton\Console\convey
+    );
+
+    return $repl(null)
+        ->flatMap(partialLeft('printf', '%s'));
+}
+
+while (true) {
+    if (main() == 6) break;
+}
