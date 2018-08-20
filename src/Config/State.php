@@ -58,6 +58,10 @@ class State
         'search' => [
             'local' => '{db}/_find',
             'cloudant' => '{db}/_find'
+        ],
+        'ddoc' => [
+            'local' => '{db}/_design/{ddoc}',
+            'cloudant' => '{db}/_design/{ddoc}'
         ]
     ];
 }
