@@ -15,12 +15,11 @@ const fetch = 'Chemem\\Fauxton\\Http\\fetch';
 
 function fetch(string $url, string $method = 'GET', array $curlOpts = []) : IO
 {
-    //fetch data from URL
     return IO::of(\curl_init($url))
         ->map(
             function ($curl) use ($curlOpts, $method) {
                 $certOpts = State::COUCH_CURLOPTS_DEFAULT + [\CURLOPT_CAINFO => concat('/', dirname(__DIR__, 2), 'cacert.pem')];
-
+                
                 \curl_setopt_array(
                     $curl,
                     patternMatch(
@@ -28,7 +27,7 @@ function fetch(string $url, string $method = 'GET', array $curlOpts = []) : IO
                             '"DELETE"' => function () use ($certOpts, $curlOpts) { return $certOpts + $curlOpts + [\CURLOPT_CUSTOMREQUEST => 'DELETE']; },
                             '"PUT"' => function () use ($certOpts, $curlOpts) { return $certOpts + $curlOpts + [\CURLOPT_CUSTOMREQUEST => 'PUT']; },
                             '"POST"' => function () use ($certOpts, $curlOpts) { return $certOpts + $curlOpts + [\CURLOPT_POST => true]; },
-                            '_' => function () use ($certOpts) { return $certOpts; }
+                            '_' => function () use ($certOpts, $curlOpts) { return $certOpts + $curlOpts; }
                         ],
                         $method
                     ) 
