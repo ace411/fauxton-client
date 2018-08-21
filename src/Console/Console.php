@@ -6,7 +6,16 @@ use \Chemem\Fauxton\Config\State;
 use \JakubOnderka\PhpConsoleColor\ConsoleColor;
 use \Chemem\Bingo\Functional\Functors\Monads\{IO, Reader};
 use function \Chemem\Bingo\Functional\PatternMatching\patternMatch;
-use function \Chemem\Fauxton\Http\{uuids, newDb, index, allDocs, getDoc, search, allDatabases};
+use function \Chemem\Fauxton\Http\{
+    uuids,
+    index, 
+    allDocs, 
+    getDoc, 
+    modify,
+    search, 
+    database,
+    allDatabases
+};
 use function \Chemem\Bingo\Functional\Algorithms\{
     omit, 
     pluck, 
@@ -23,21 +32,8 @@ const fetch = 'Chemem\\Fauxton\\Console\\fetch';
 
 function fetch() : IO
 {
-    return IO::of(
-        function () {
-            $action = compose(
-                partialRight(\Chemem\Bingo\Functional\Algorithms\pluck, 'prompt'),
-                partialLeft('printf', '%s')
-            );
-            return $action(State::CONSOLE_FEATURES);
-        }
-    )
-        ->map(
-            function (int $strlen) {
-                $input = compose('fgets', 'trim');
-                return $input(\STDIN);
-            }
-        );
+    return printPrompt('prompt')
+        ->map(function (int $strlen) { return $strlen > 0 ? getLine() : identity('input error'); });
 }
 
 const parse = 'Chemem\\Fauxton\\Console\\parse';
@@ -186,7 +182,7 @@ function parse(IO $parsable) : IO
                                                 return $prompt(State::CONSOLE_FEATURES);
                                             }
                                         )
-                                            ->flatMap(function (int $len) use ($txtInput) { return $len > 0 ? newDb($txtInput(\STDIN)) : identity('Could not create db'); }); 
+                                            ->flatMap(function (int $len) use ($txtInput) { return $len > 0 ? database('create', $txtInput(\STDIN)) : identity('Could not create db'); }); 
                                     }, //new db
                                     '_' => function () { return 'NaN'; } 
                                 ],
@@ -221,8 +217,9 @@ function parse(IO $parsable) : IO
                                         return $action($query);
                                     }
                                 );
-                        }, 
+                        },
                         '["uuids", count]' => function (string $count) { return uuids((is_numeric($count) ? (int) $count : 1)); },
+                        '["input", "error"]' => function () { return 'Console error'; },
                         '["config"]' => function () use ($read) { return $read(State::CLIENT_CONFIG_FILE)->exec(); },
                         '["help"]' => function () { return 'Help command'; },
                         '["dbs"]' => function () { return allDatabases(); },
@@ -258,4 +255,40 @@ function color(string $text, string $color) : string
 {
     $color = new ConsoleColor;
     return $color->isSupported() ? $color->apply($color, $text) : identity($text);
+}
+
+const getLine = 'Chemem\\Fauxton\\Console\\getLine';
+
+function getLine() : string
+{
+    $line = compose('fgets', 'trim');
+    return $line(\STDIN);
+}
+
+const getListFromLine = 'Chemem\\Fauxton\\Console\\getListFromLine';
+
+function getListFromLine() : array
+{
+    $list = compose(
+        getLine,
+        function ($content) { 
+            $explode = partialRight('explode', $content);
+            return $explode(preg_match('/\s+/', $content) ? ', ' : ',');
+        } 
+    );
+
+    return $list(\STDIN);
+}
+
+const printPrompt = 'Chemem\\Fauxton\\Console\\printPrompt';
+
+function printPrompt(string $key) : IO
+{
+    $prompt = compose(
+        partialRight(\Chemem\Bingo\Functional\Algorithms\pluck, $key),
+        partialLeft('printf', '%s')
+    );
+
+    return IO::of(function () use ($prompt) { return function (array $opts) use ($prompt) { return $prompt($opts); }; })
+        ->ap(IO::of(State::CONSOLE_FEATURES));
 }
