@@ -71,6 +71,7 @@ class State
         'index' => 'Index name: ',
         'view' => 'View name: ',
         'dbFields' => 'Fields: ',
-        'docId' => 'Document id: '
+        'docId' => 'Document id: ',
+        'docRev' => 'Document rev: '
     ];
 }
