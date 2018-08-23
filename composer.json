@@ -10,7 +10,9 @@
         }
     ],
     "require-dev": {
-        "phpunit/phpunit": "~6.0"
+        "phpunit/phpunit": "~6.0",
+        "jfalque/http-mock": "~1",
+        "giorgiosironi/eris": "~0.10"
     },
     "require": {
         "php": ">=7.0",
