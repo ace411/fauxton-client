@@ -17,6 +17,7 @@ use function \Chemem\Fauxton\Http\{
     allDatabases
 };
 use function \Chemem\Bingo\Functional\Algorithms\{
+    map,
     omit, 
     pluck, 
     compose, 
@@ -43,8 +44,6 @@ function parse(IO $parsable) : IO
     return $parsable
         ->map(
             function (string $input) {
-                $txtInput = compose('fgets', 'trim');
-                $formatMultiple = compose($txtInput, partialLeft('explode', ', '));
                 $read = compose(
                     partialLeft(\Chemem\Bingo\Functional\Algorithms\concat, '/', dirname(__DIR__, 2)),
                     \Chemem\Fauxton\FileSystem\fileInit,
@@ -129,92 +128,58 @@ function parse(IO $parsable) : IO
                                     }
                                 );
                         },
-                        '["new", item]' => function (string $item) use ($txtInput, $formatMultiple) {
+                        '["new", item]' => function (string $item) {                            
                             return patternMatch(
                                 [
-                                    '"index"' => function () use ($txtInput, $formatMultiple) { 
-                                        return IO::of(
-                                            function () {
-                                                $prompt = compose(
-                                                    partialRight(\Chemem\Bingo\Functional\Algorithms\pluck, 'index'),
-                                                    partialLeft('printf', '%s')
-                                                );
-
-                                                return $prompt(State::CONSOLE_FEATURES);
-                                            }
-                                        )
-                                            ->map(function (int $len, array $query = []) use ($txtInput) { return extend($query, ['name' => $len > 0 ? $txtInput(\STDIN) : identity('')]); })
+                                    '"index"' => function () { 
+                                        return printPrompt('db')
+                                            ->map(function (int $len, array $query = []) { return extend($query, ['db' => $len > 0 ? getLine() : identity('')]); })
                                             ->map(
-                                                function (array $query) use ($txtInput) {
+                                                function (array $query) {
                                                     $action = compose(
-                                                        partialRight(\Chemem\Bingo\Functional\Algorithms\pluck, 'db'),
+                                                        partialRight(\Chemem\Bingo\Functional\Algorithms\pluck, 'index'),
                                                         partialLeft('printf', '%s'),
-                                                        function (int $len) use ($query, $txtInput) { return extend(['db' => $len > 0 ? $txtInput(\STDIN) : identity('')], $query); }
+                                                        function (int $len) use ($query) { return extend(['name' => $len > 0 ? getLine() : identity('')], $query); }
                                                     );
-
                                                     return $action(State::CONSOLE_FEATURES);
                                                 }
                                             )
                                             ->flatMap(
-                                                function (array $query) use ($formatMultiple) {
+                                                function (array $query) {
                                                     $action = compose(
                                                         partialRight(\Chemem\Bingo\Functional\Algorithms\pluck, 'dbFields'),
                                                         partialLeft('printf', '%s'),
-                                                        function (int $len) use ($query, $formatMultiple) {
-                                                            $query['index']['fields'] = $len > 0 ? $formatMultiple(\STDIN) : identity([]);
-                                                            
+                                                        function (int $len) use ($query) {
+                                                            $query['index']['fields'] = $len > 0 ? getListFromLine() : identity([]);
                                                             return index('create', pluck($query, 'db'), omit($query, 'db'));
                                                         }
                                                     );
-
                                                     return $action(State::CONSOLE_FEATURES);
                                                 }
                                             ); 
-                                    }, //new view
-                                    '"db"' => function () use ($txtInput) { 
-                                        return IO::of(
-                                            function () {
-                                                $prompt = compose(
-                                                    partialRight(\Chemem\Bingo\Functional\Algorithms\pluck, 'db'),
-                                                    partialLeft('printf', '%s')
-                                                );
-
-                                                return $prompt(State::CONSOLE_FEATURES);
-                                            }
-                                        )
-                                            ->flatMap(function (int $len) use ($txtInput) { return $len > 0 ? database('create', $txtInput(\STDIN)) : identity('Could not create db'); }); 
-                                    }, //new db
-                                    '_' => function () { return 'NaN'; } 
+                                    },
+                                    '"db"' => function () { 
+                                        return printPrompt('db')
+                                            ->flatMap(function (int $len) { return $len > 0 ? database('create', getLine()) : identity('Could not create db'); }); 
+                                    },
+                                    '_' => function () { return 'Could not create item'; } 
                                 ],
                                 $item
                             );
                         },
                         '["docs", database]' => function (string $database) { return allDocs($database, ['include_docs' => 'true']); },
                         '["doc", database, docId]' => function (string $database, string $docId) { return getDoc($database, $docId); },
-                        '["search", database]' => function (string $database) use ($txtInput, $formatMultiple) {
-                            return IO::of(printf('%s', 'Selector: '))
-                                ->map(
-                                    function (int $len, array $query = []) use ($txtInput) {
-                                        $format = compose($txtInput, partialRight('json_decode', true));
-                                        $query['selector'] = $len > 0 ? $format(\STDIN) : identity('');
-                                        return $query;
-                                    }
-                                )
-                                ->map(
-                                    function (array $query) use ($formatMultiple) {
-                                        printf('%s', concat(':', 'Fields', ' '));
-                                        $query['fields'] = $formatMultiple(\STDIN);
-                                        return $query; 
-                                    }
-                                )
+                        '["search", database]' => function (string $database) {
+                            return printPrompt('search')
+                                ->map(function (int $len, array $query = []) { return extend($query, ['selector' => $len > 0 ? json_decode(getLine(), true) : identity('')]); })
                                 ->flatMap(
-                                    function (array $query) use ($database) {
-                                        $action = compose(
-                                            partialRight(\Chemem\Bingo\Functional\Algorithms\extend, ['limit' => 25, 'skip' => 0]),
-                                            partialLeft(\Chemem\Fauxton\Http\search, $database)
+                                    function (array $query) {
+                                        $fields = compose(
+                                            partialRight(\Chemem\Bingo\Functional\Algorithms\pluck, 'dbFields'),
+                                            partialLeft('printf', '%s'),
+                                            function (int $len) use ($query) { return extend($query, ['fields' => $len > 0 ? getListFromLine() : identity([])]); }
                                         );
-
-                                        return $action($query);
+                                        return $fields(State::CONSOLE_FEATURES);
                                     }
                                 );
                         },
@@ -222,6 +187,14 @@ function parse(IO $parsable) : IO
                         '["input", "error"]' => function () { return 'Console error'; },
                         '["config"]' => function () use ($read) { return $read(State::CLIENT_CONFIG_FILE)->exec(); },
                         '["help"]' => function () { return 'Help command'; },
+                        '["explain", cmd]' => function (string $cmd) {
+                            return key_exists($cmd, State::CONSOLE_COMMANDS) ?
+                                implode(
+                                    \PHP_EOL, 
+                                    map(function (string $command) { return concat('- ', '', $command); }, pluck(State::CONSOLE_COMMANDS, $cmd))
+                                ) :
+                                concat(' ', 'Command', $cmd, 'is not supported');
+                        },
                         '["dbs"]' => function () { return allDatabases(); },
                         '["exit"]' => function () { return color('Exit', 'red'); },
                         '_' => function () { return color('Invalid input', 'red'); }
