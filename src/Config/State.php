@@ -72,6 +72,54 @@ class State
         'view' => 'View name: ',
         'dbFields' => 'Fields: ',
         'docId' => 'Document id: ',
-        'docRev' => 'Document rev: '
+        'docRev' => 'Document rev: ',
+        'search' => 'Search selector: '
+    ];
+
+    const CONSOLE_COMMANDS = [
+        'exit' => [
+            'doc' => 'exit',
+            'desc' => 'Terminates the Fauxton console'
+        ],
+        'config' => [
+            'doc' => 'config',
+            'desc' => 'Shows the fauxton client configuration'
+        ],
+        'dbs' => [
+            'doc' => 'dbs',
+            'desc' => 'Shows all available databases'
+        ],
+        'uuids' => [
+            'doc' => 'uuids <count> eg uuids 2',
+            'desc' => 'Outputs a specified number of unique ids'
+        ],
+        'local' => [
+            'doc' => 'local <username> <password> eg local foo foobar',
+            'desc' => 'Sets local CouchDB username and password'
+        ],
+        'cloudant' => [
+            'doc' => 'cloudant <username> <password> eg cloudant xxx-bluemix yyybar',
+            'desc' => 'Sets IBM Cloudant username and password'
+        ],
+        'use' => [
+            'doc' => 'use <option> eg use local',
+            'desc' => 'Modifies local parameter in fauxton-client configuration'
+        ],
+        'docs' => [
+            'doc' => 'docs <database> eg docs nba_players',
+            'desc' => 'Outputs all the documents in a database'
+        ],
+        'doc' => [
+            'doc' => 'doc <database> <docId> eg doc nba_players dwayne_wade',
+            'desc' => 'Outputs a document\'s contents' 
+        ],
+        'search' => [
+            'doc' => 'search <database> eg search rap_artists',
+            'desc' => '** Searches a database (Powered by Mango queries)'
+        ],
+        'new' => [
+            'doc' => 'new <option> (database|view|index|design-doc) eg new db',
+            'desc' => 'Creates one of either a new document, new view, new index, or new design document'
+        ]
     ];
 }
