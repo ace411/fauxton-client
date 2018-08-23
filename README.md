@@ -4,7 +4,8 @@ A simple CouchDB interaction library.
 ## Requirements
 
 - curl
-- php 5.4+
+
+- php 7.0 or greater
 
 ## Installation
 
@@ -55,3 +56,7 @@ There are a few samples in the tests directory. Please consider using them to fu
 ## Dealing with problems
 
 Endeavor to create an issue on GitHub when the need arises or send an email to lochbm@gmail.com
+
+# Note
+
+In light of recent modification activity, the fauxton-client is temporarily unusable.
