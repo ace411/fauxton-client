@@ -1,5 +1,13 @@
 <?php
 
+/**
+ * 
+ * fauxton-client state
+ * 
+ * @package fauxton-client
+ * @author Lochemem Bruno Michael
+ */
+
 namespace Chemem\Fauxton\Config;
 
 class State 

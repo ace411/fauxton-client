@@ -1,5 +1,13 @@
 <?php
 
+/**
+ * 
+ * fauxton-client console functions
+ * 
+ * @package fauxton-client
+ * @author Lochemem Bruno Michael
+ */
+
 namespace Chemem\Fauxton\Console;
 
 use \Chemem\Fauxton\Config\State;
@@ -29,6 +37,10 @@ use function \Chemem\Bingo\Functional\Algorithms\{
     curryRightN
 };
 
+/**
+ * fetch :: Optional -> IO
+ */
+
 const fetch = 'Chemem\\Fauxton\\Console\\fetch';
 
 function fetch() : IO
@@ -36,6 +48,10 @@ function fetch() : IO
     return printPrompt('prompt')
         ->map(function (int $strlen) { return $strlen > 0 ? getLine() : identity('input error'); });
 }
+
+/**
+ * parse :: IO -> IO
+ */
 
 const parse = 'Chemem\\Fauxton\\Console\\parse';
 
@@ -205,6 +221,10 @@ function parse(IO $parsable) : IO
         ); //convert input to output
 }
 
+/**
+ * convey :: IO -> IO
+ */
+
 const convey = 'Chemem\\Fauxton\\Console\\convey';
 
 function convey(IO $parsed) : IO
@@ -222,6 +242,10 @@ function convey(IO $parsed) : IO
         );
 }
 
+/**
+ * color :: String text -> String color -> String text
+ */
+
 const color = 'Chemem\\Fauxton\\Console\\color';
 
 function color(string $text, string $color) : string
@@ -230,6 +254,10 @@ function color(string $text, string $color) : string
     return $color->isSupported() ? $color->apply($color, $text) : identity($text);
 }
 
+/**
+ * getLine :: Optional -> String line
+ */
+
 const getLine = 'Chemem\\Fauxton\\Console\\getLine';
 
 function getLine() : string
@@ -237,6 +265,10 @@ function getLine() : string
     $line = compose('fgets', 'trim');
     return $line(\STDIN);
 }
+
+/**
+ * getListFromLine :: Optional -> Array list
+ */
 
 const getListFromLine = 'Chemem\\Fauxton\\Console\\getListFromLine';
 
@@ -252,6 +284,10 @@ function getListFromLine() : array
 
     return $list(\STDIN);
 }
+
+/**
+ * printPrompt :: String key -> IO
+ */
 
 const printPrompt = 'Chemem\\Fauxton\\Console\\printPrompt';
 

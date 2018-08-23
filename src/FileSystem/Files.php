@@ -1,5 +1,13 @@
 <?php
 
+/**
+ * 
+ * fauxton-client filesystem functions
+ * 
+ * @package fauxton-client
+ * @author Lochemem Bruno Michael
+ */
+
 namespace Chemem\Fauxton\FileSystem;
 
 use \Chemem\Bingo\Functional\Functors\Monads\IO;

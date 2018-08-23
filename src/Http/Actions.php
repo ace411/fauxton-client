@@ -1,5 +1,13 @@
 <?php
 
+/**
+ * 
+ * fauxton-client CouchDB actions
+ * 
+ * @package fauxton-client
+ * @author Lochemem Bruno Michael
+ */
+
 namespace Chemem\Fauxton\Http;
 
 use Chemem\Fauxton\Config\State;
