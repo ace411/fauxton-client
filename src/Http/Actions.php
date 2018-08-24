@@ -435,3 +435,82 @@ function search(string $database, array $query) : Collection
             }
         );
 }
+
+const ddoc = 'Chemem\\Fauxton\\Http\\ddoc';
+
+function ddoc(string $opt, string $database, array $params = []) : Collection
+{
+    return credentialsFromFile()
+        ->flatMap(
+            function (array $credentials) use ($opt, $params, $database) {
+                list($user, $pwd, $local) = $credentials;
+                $url = urlGenerator(
+                    'ddoc', 
+                    $credentials, 
+                    [
+                        '{db}' => $database, 
+                        '{ddoc}' => (isset($params['ddoc']) ? $params['ddoc'] : identity(''))
+                    ]
+                );
+
+                return patternMatch(
+                    [
+                        '["create", "view"]' => function () use ($url, $params, $local, $user, $pwd) {
+                            $fields = compose(
+                                partialRight(\Chemem\Bingo\Functional\Algorithms\omit, 'ddoc'),
+                                'json_encode'
+                            );
+
+                            return fetch(
+                                $url,
+                                'PUT',
+                                [\CURLOPT_POSTFIELDS => $fields($params)] + 
+                                    (!$local ? [] : [\CURLOPT_HTTPAUTH => true, \CURLOPT_USERPWD => concat(':', $user, $pwd)])
+                            );
+                        },
+                        '["query", "view"]' => function () use ($url, $user, $pwd, $local, $params) {
+                            $urlParams = omit($params, 'ddoc', 'view');
+                            $action = compose(
+                                partialRight(
+                                    partialLeft(\Chemem\Bingo\Functional\Algorithms\concat, '/'),  
+                                    (concat(
+                                        '?',
+                                        isset($params['view']) ? $params['view'] : identity(''),
+                                        (count($urlParams) > 0 ? http_build_query($urlParams) : identity(''))
+                                    )),
+                                    '_view'
+                                ),
+                                partialRight('rtrim', '?'),
+                                partialRight('rtrim', '/'),
+                                partialRight(
+                                    fetch,
+                                    (!$local ? [] : [\CURLOPT_HTTPAUTH => true, \CURLOPT_USERPWD => concat(':', $user, $pwd)]),
+                                    'GET'
+                                )
+                            );
+
+                            return $action($url);
+                        },
+                        '["info"]' => function () use ($url, $local, $user, $pwd) { return fetch($url, 'GET', (!$local ? [] : [\CURLOPT_HTTPAUTH => true, \CURLOPT_USERPWD => concat(':', $user, $pwd)])); },
+                        '["delete"]' => function () use ($url, $params) { 
+                            $delete = compose(
+                                function ($params) { return isset($params['_rev']) ? concat('=', 'rev', $params['_rev']) : identity(''); },
+                                partialLeft(\Chemem\Bingo\Functional\Algorithms\concat, '?', $url),
+                                partialRight('rtrim', '?'),
+                                partialRight(
+                                    fetch, 
+                                    (!$local ? [] : [\CURLOPT_HTTPAUTH => true, \CURLOPT_USERPWD => concat(':', $user, $pwd)]),
+                                    'DELETE'
+                                )
+                            );
+
+                            return $delete($params);
+                        },
+                        '_' => function () { return IO::of(['Invalid request']); }
+                    ],
+                    explode('_', $opt)
+                )
+                    ->flatMap(function (array $response) { return Collection::from(isset($response['rows']) ? pluck($response, 'rows') : $response); });
+            }
+        );
+}
