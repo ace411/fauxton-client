@@ -256,7 +256,19 @@ function parse(IO $parsable) : IO
                         '["uuids", count]' => function (string $count) { return uuids((is_numeric($count) ? (int) $count : 1)); },
                         '["input", "error"]' => function () { return 'Console error'; },
                         '["config"]' => function () use ($read) { return $read(State::CLIENT_CONFIG_FILE)->exec(); },
-                        '["help"]' => function () { return 'Help command'; },
+                        '["help"]' => function () { 
+                            return concat(
+                                \PHP_EOL, 
+                                'Available commands',
+                                implode(\PHP_EOL, 
+                                    array_map(
+                                        function ($cmd, $block) { return concat(': ', $cmd, pluck($block, 'desc')); }, 
+                                        array_keys(State::CONSOLE_COMMANDS), 
+                                        array_values(State::CONSOLE_COMMANDS)
+                                    )
+                                ) 
+                            ); 
+                        },
                         '["explain", cmd]' => function (string $cmd) {
                             return key_exists($cmd, State::CONSOLE_COMMANDS) ?
                                 implode(
