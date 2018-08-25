@@ -444,6 +444,10 @@ function search(string $database, array $query) : Collection
         );
 }
 
+/**
+ * ddoc :: String opt -> String database -> Array params -> Collection
+ */
+
 const ddoc = 'Chemem\\Fauxton\\Http\\ddoc';
 
 function ddoc(string $opt, string $database, array $params = []) : Collection
@@ -519,6 +523,34 @@ function ddoc(string $opt, string $database, array $params = []) : Collection
                     explode('_', $opt)
                 )
                     ->flatMap(function (array $response) { return Collection::from(isset($response['rows']) ? pluck($response, 'rows') : $response); });
+            }
+        );
+}
+
+/**
+ * changes :: String database -> Array params -> Collection
+ */
+
+const changes = 'Chemem\\Fauxton\\Http\\changes';
+
+function changes(string $database, array $params = []) : Collection
+{
+    return credentialsFromFile()
+        ->flatMap(
+            function (array $credentials) use ($params, $database) {
+                [$user, $pwd, $local] = $credentials;
+
+                $changes = compose(
+                    partialLeft(urlGenerator, 'changes', $credentials),
+                    partialRight('rtrim', '?'),
+                    partialRight(fetch, (!$local ? [] : [\CURLOPT_HTTPAUTH => true, \CURLOPT_USERPWD => concat(':', $user, $pwd)]), 'GET')
+                );
+
+                return $changes([
+                    '{db}' => $database,
+                    '{params}' => (!empty($params) ? \http_build_query($params) : identity(''))
+                ])
+                    ->flatMap(function ($response) { return isset($response['results']) ? Collection::from(...pluck($response, 'results')) : Collection::from($response); });
             }
         );
 }

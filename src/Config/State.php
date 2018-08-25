@@ -70,6 +70,10 @@ class State
         'ddoc' => [
             'local' => '{db}/_design/{ddoc}',
             'cloudant' => '{db}/_design/{ddoc}'
+        ],
+        'changes' => [
+            'local' => '{db}/_changes?{params}',
+            'cloudant' => '{db}/_changes?{params}'
         ]
     ];
 
