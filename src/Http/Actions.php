@@ -470,6 +470,7 @@ function ddoc(string $opt, string $database, array $params = []) : Collection
                         '["create", "view"]' => function () use ($url, $params, $local, $user, $pwd) {
                             $fields = compose(
                                 partialRight(\Chemem\Bingo\Functional\Algorithms\omit, 'ddoc'),
+                                partialRight(\Chemem\Bingo\Functional\Algorithms\extend, ['language' => 'javascript']),
                                 'json_encode'
                             );
 

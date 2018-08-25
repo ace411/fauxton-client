@@ -85,7 +85,11 @@ class State
         'dbFields' => 'Fields: ',
         'docId' => 'Document id: ',
         'docRev' => 'Document rev: ',
-        'search' => 'Search selector: '
+        'ddoc' => 'Design document: ',
+        'search' => 'Search selector: ',
+        'map' => 'Map function: ',
+        'reduce' => 'Reduce function: ',
+        'rereduce' => 'Rereduce function: '
     ];
 
     const CONSOLE_COMMANDS = [
