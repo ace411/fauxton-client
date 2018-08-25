@@ -9,6 +9,7 @@ use function \Chemem\Bingo\Functional\PatternMatching\patternMatch;
 use function \Chemem\Fauxton\Http\{
     uuids,
     index, 
+    ddoc,
     allDocs, 
     getDoc, 
     modify,
@@ -18,7 +19,8 @@ use function \Chemem\Fauxton\Http\{
 };
 use function \Chemem\Bingo\Functional\Algorithms\{
     map,
-    omit, 
+    omit,
+    filter, 
     pluck, 
     compose, 
     concat, 
@@ -157,6 +159,74 @@ function parse(IO $parsable) : IO
                                                     return $action(State::CONSOLE_FEATURES);
                                                 }
                                             ); 
+                                    },
+                                    '"view"' => function () {
+                                        return printPrompt('view')
+                                            ->map(function (int $len, array $query = []) { return extend($query, ['name' => ($len > 0 ? getLine() : identity(''))]); })
+                                            ->map(
+                                                function (array $query) {
+                                                    $action = compose(
+                                                        partialRight(\Chemem\Bingo\Functional\Algorithms\pluck, 'db'),
+                                                        partialLeft('printf', '%s'),
+                                                        function (int $len) use ($query) { return extend(['db' => $len > 0 ? getLine() : identity('')], $query); }
+                                                    );
+                                                    return $action(State::CONSOLE_FEATURES);
+                                                }
+                                            )
+                                            ->map(
+                                                function (array $query) {
+                                                    $action = compose(
+                                                        partialRight(\Chemem\Bingo\Functional\Algorithms\pluck, 'ddoc'),
+                                                        partialLeft('printf', '%s'),
+                                                        function (int $len) use ($query) { return extend(['ddoc' => $len > 0 ? getLine() : identity('')], $query); }
+                                                    );
+                                                    return $action(State::CONSOLE_FEATURES);
+                                                }
+                                            )
+                                            ->map(
+                                                function (array $query) {
+                                                    $action = compose(
+                                                        partialRight(\Chemem\Bingo\Functional\Algorithms\pluck, 'map'),
+                                                        partialLeft('printf', '%s'),
+                                                        function (int $len) use ($query) { return extend(['map' => $len > 0 ? getLine() : identity('')], $query); }
+                                                    );
+                                                    return $action(State::CONSOLE_FEATURES);
+                                                }
+                                            )                                            
+                                            ->map(
+                                                function (array $query) {
+                                                    $action = compose(
+                                                        partialRight(\Chemem\Bingo\Functional\Algorithms\pluck, 'reduce'),
+                                                        partialLeft('printf', '%s'),
+                                                        function (int $len) use ($query) { return extend(['reduce' => $len > 0 ? getLine() : identity('')], $query); }
+                                                    );
+                                                    return $action(State::CONSOLE_FEATURES);
+                                                }
+                                            )
+                                            ->map(
+                                                function (array $query) {
+                                                    $action = compose(
+                                                        partialRight(\Chemem\Bingo\Functional\Algorithms\pluck, 'rereduce'),
+                                                        partialLeft('printf', '%s'),
+                                                        function (int $len) use ($query) { return extend(['rereduce' => $len > 0 ? getLine() : identity('')], $query); }
+                                                    );
+                                                    return $action(State::CONSOLE_FEATURES);
+                                                }
+                                            )
+                                            ->flatMap(
+                                                function (array $query) {
+                                                    $submit = extend(
+                                                        [
+                                                            'views' => [
+                                                                pluck($query, 'name') => filter(function ($val) { return !empty($val); }, omit($query, 'db', 'name', 'ddoc'))
+                                                            ]
+                                                        ], 
+                                                        ['ddoc' => pluck($query, 'ddoc')]
+                                                    );
+                                                    
+                                                    return ddoc('create_view', pluck($query, 'db'), $submit);
+                                                }
+                                            );
                                     },
                                     '"db"' => function () { 
                                         return printPrompt('db')
