@@ -539,7 +539,7 @@ function changes(string $database, array $params = []) : Collection
     return credentialsFromFile()
         ->flatMap(
             function (array $credentials) use ($params, $database) {
-                [$user, $pwd, $local] = $credentials;
+                list($user, $pwd, $local) = $credentials;
 
                 $changes = compose(
                     partialLeft(urlGenerator, 'changes', $credentials),
