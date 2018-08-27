@@ -70,6 +70,10 @@ class State
         'ddoc' => [
             'local' => '{db}/_design/{ddoc}',
             'cloudant' => '{db}/_design/{ddoc}'
+        ],
+        'changes' => [
+            'local' => '{db}/_changes?{params}',
+            'cloudant' => '{db}/_changes?{params}'
         ]
     ];
 
@@ -81,7 +85,11 @@ class State
         'dbFields' => 'Fields: ',
         'docId' => 'Document id: ',
         'docRev' => 'Document rev: ',
-        'search' => 'Search selector: '
+        'ddoc' => 'Design document: ',
+        'search' => 'Search selector: ',
+        'map' => 'Map function: ',
+        'reduce' => 'Reduce function: ',
+        'rereduce' => 'Rereduce function: '
     ];
 
     const CONSOLE_COMMANDS = [
