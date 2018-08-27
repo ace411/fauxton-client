@@ -133,7 +133,7 @@ function uuids(int $count) : Collection
                     'GET',
                     !$local ? [] : [\CURLOPT_HTTPAUTH => true, \CURLOPT_USERPWD => concat(':', $user, $pwd)]
                 )
-                    ->flatMap(function (array $response) { return !isset($response['uuids']) ? Collection::from(...$response['uuids']) : Collection::from($response); });
+                    ->flatMap(function (array $response) { return isset($response['uuids']) ? Collection::from(...$response['uuids']) : Collection::from($response); });
             }
         );
 }
@@ -187,7 +187,7 @@ function allDocs(string $database, array $params = []) : Collection
                     'GET',
                     !$local ? identity([]) : [\CURLOPT_HTTPAUTH => true, \CURLOPT_USERPWD => concat(':', $user, $pwd)]
                 )
-                    ->flatMap(function (array $response) { return isset($response['rows']) ? Collection::from($response['rows']) : Collection::from($response); });
+                    ->flatMap(function (array $response) { return isset($response['rows']) ? Collection::from(...$response['rows']) : Collection::from($response); });
             }
         );
 }
