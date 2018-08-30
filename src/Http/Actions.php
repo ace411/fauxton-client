@@ -179,7 +179,7 @@ function allDocs(string $database, array $params = []) : Collection
                     'GET',
                     !$local ? identity([]) : [\CURLOPT_HTTPAUTH => true, \CURLOPT_USERPWD => concat(':', $user, $pwd)]
                 )
-                    ->flatMap(function (array $response) { return isset($response['rows']) ? Collection::from($response['rows']) : Collection::from($response); });
+                    ->flatMap(function (array $response) { return isset($response['rows']) ? Collection::from(...pluck($response, 'rows')) : Collection::from($response); });
             }
         );
 }
@@ -303,7 +303,7 @@ function modify(string $opt, string $database, array $data, array $update = []) 
                         },
                         '_' => function () { return IO::of(['error' => 'Invalid function option']); }
                     ],
-                    explode('-', $opt)
+                    explode('_', $opt)
                 )
                     ->flatMap(function (array $response) { return Collection::from($response); });                
             }
@@ -388,25 +388,13 @@ function index(string $opt, string $database, array $params = []) : Collection
                                 (!$local ? [] : [\CURLOPT_HTTPAUTH => true, \CURLOPT_USERPWD => concat(':', $user, $pwd)])
                             );
                         },
-                        '_' => function () {}
+                        '_' => function () { return IO::of(['response' => 'Could not perform action on index']); }
                     ],
                     $opt
                 );
 
                 return $action
-                    ->flatMap(
-                        function ($response) use ($opt) { 
-                            return Collection::from(
-                                patternMatch(
-                                    [
-                                        '"list"' => function () use ($response) { return pluck($response, 'indexes'); },
-                                        '_' => function () use ($response) { return identity($response); }
-                                    ],
-                                    $opt
-                                )
-                            ); 
-                        }
-                    );
+                    ->flatMap(function ($response) use ($opt) { return isset($response['indexes']) ? Collection::from(...pluck($response, 'indexes')) : Collection::from($response); });
             }
         );
 }
@@ -431,7 +419,7 @@ function search(string $database, array $query) : Collection
                     [\CURLOPT_POSTFIELDS => json_encode($query)] + 
                         (!$local ? [] : [\CURLOPT_HTTPAUTH => true, \CURLOPT_USERPWD => concat(':', $user, $pwd)])
                 )
-                    ->flatMap(function (array $response) { return Collection::from(isset($response['docs']) ? $response['docs'] : $response); });
+                    ->flatMap(function (array $response) { return isset($response['docs']) ? Collection::from(pluck($response, 'docs')) : Collection::from($response); });
             }
         );
 }
@@ -514,7 +502,7 @@ function ddoc(string $opt, string $database, array $params = []) : Collection
                     ],
                     explode('_', $opt)
                 )
-                    ->flatMap(function (array $response) { return Collection::from(isset($response['rows']) ? pluck($response, 'rows') : $response); });
+                    ->flatMap(function (array $response) { return isset($response['rows']) ? Collection::from(...pluck($response, 'rows')) : Collection::from($response); });
             }
         );
 }
