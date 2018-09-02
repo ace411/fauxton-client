@@ -419,7 +419,7 @@ function search(string $database, array $query) : Collection
                     [\CURLOPT_POSTFIELDS => json_encode($query)] + 
                         (!$local ? [] : [\CURLOPT_HTTPAUTH => true, \CURLOPT_USERPWD => concat(':', $user, $pwd)])
                 )
-                    ->flatMap(function (array $response) { return isset($response['docs']) ? Collection::from(pluck($response, 'docs')) : Collection::from($response); });
+                    ->flatMap(function (array $response) { return isset($response['docs']) ? Collection::from(...pluck($response, 'docs')) : Collection::from($response); });
             }
         );
 }
