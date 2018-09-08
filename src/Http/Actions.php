@@ -29,8 +29,11 @@ use function \Chemem\Bingo\Functional\Algorithms\{
     compose,
     isArrayOf, 
     partialLeft, 
-    partialRight
+    partialRight,
+    constantFunction
 };
+
+const collection = 'Chemem\\Bingo\\Functional\\Immutable\\Collection::from';
 
 /**
  * credentialsFromFile :: Optional -> IO
@@ -187,7 +190,7 @@ function allDocs(string $database, array $params = []) : Collection
                     'GET',
                     !$local ? identity([]) : [\CURLOPT_HTTPAUTH => true, \CURLOPT_USERPWD => concat(':', $user, $pwd)]
                 )
-                    ->flatMap(function (array $response) { return isset($response['rows']) ? Collection::from(...$response['rows']) : Collection::from($response); });
+                    ->flatMap(function (array $response) { return isset($response['rows']) ? Collection::from(...pluck($response, 'rows')) : Collection::from($response); });
             }
         );
 }
@@ -311,7 +314,7 @@ function modify(string $opt, string $database, array $data, array $update = []) 
                         },
                         '_' => function () { return IO::of(['error' => 'Invalid function option']); }
                     ],
-                    explode('-', $opt)
+                    explode('_', $opt)
                 )
                     ->flatMap(function (array $response) { return Collection::from($response); });                
             }
@@ -396,25 +399,13 @@ function index(string $opt, string $database, array $params = []) : Collection
                                 (!$local ? [] : [\CURLOPT_HTTPAUTH => true, \CURLOPT_USERPWD => concat(':', $user, $pwd)])
                             );
                         },
-                        '_' => function () {}
+                        '_' => function () { return IO::of(['response' => 'Could not perform action on index']); }
                     ],
                     $opt
                 );
 
                 return $action
-                    ->flatMap(
-                        function ($response) use ($opt) { 
-                            return Collection::from(
-                                patternMatch(
-                                    [
-                                        '"list"' => function () use ($response) { return pluck($response, 'indexes'); },
-                                        '_' => function () use ($response) { return identity($response); }
-                                    ],
-                                    $opt
-                                )
-                            ); 
-                        }
-                    );
+                    ->flatMap(function ($response) use ($opt) { return isset($response['indexes']) ? Collection::from(...pluck($response, 'indexes')) : Collection::from($response); });
             }
         );
 }
@@ -439,7 +430,7 @@ function search(string $database, array $query) : Collection
                     [\CURLOPT_POSTFIELDS => json_encode($query)] + 
                         (!$local ? [] : [\CURLOPT_HTTPAUTH => true, \CURLOPT_USERPWD => concat(':', $user, $pwd)])
                 )
-                    ->flatMap(function (array $response) { return Collection::from(isset($response['docs']) ? $response['docs'] : $response); });
+                    ->flatMap(function (array $response) { return isset($response['docs']) ? Collection::from(...pluck($response, 'docs')) : Collection::from($response); });
             }
         );
 }
@@ -523,7 +514,7 @@ function ddoc(string $opt, string $database, array $params = []) : Collection
                     ],
                     explode('_', $opt)
                 )
-                    ->flatMap(function (array $response) { return Collection::from(isset($response['rows']) ? pluck($response, 'rows') : $response); });
+                    ->flatMap(function (array $response) { return isset($response['rows']) ? Collection::from(...pluck($response, 'rows')) : Collection::from($response); });
             }
         );
 }
@@ -552,6 +543,69 @@ function changes(string $database, array $params = []) : Collection
                     '{params}' => (!empty($params) ? \http_build_query($params) : identity(''))
                 ])
                     ->flatMap(function ($response) { return isset($response['results']) ? Collection::from(...pluck($response, 'results')) : Collection::from($response); });
+            }
+        );
+}
+
+/**
+ * compact :: String database -> String ddoc -> Collection
+ */
+
+const compact = 'Chemem\\Fauxton\\Http\\compact';
+
+function compact(string $database, string $ddoc = '')
+{
+    return credentialsFromFile()
+        ->flatMap(
+            function (array $credentials) use ($ddoc, $database) {
+                list($user, $pwd, $local) = $credentials;
+                
+                $action = compose(
+                    constantFunction(urlGenerator('dbgen', $credentials, ['{db}' => $database])),
+                    partialRight(partialLeft(\Chemem\Bingo\Functional\Algorithms\concat, '/'), $ddoc, '_compact'),
+                    partialRight('rtrim', '/'),
+                    partialRight(fetch, !$local ? [] : [\CURLOPT_HTTPAUTH => true, \CURLOPT_USERPWD => concat(':', $user, $pwd)], 'POST')
+                );
+
+                return $action(null)->flatMap(collection);
+            }
+        );
+}
+
+/**
+ * revLimit :: String opt -> String database -> Int revLimit -> Collection
+ */
+
+function revLimit(string $opt, string $database, int $revLimit = 1000)
+{
+    return credentialsFromFile()
+        ->flatMap(
+            function (array $credentials) use ($opt, $database, $revLimit) {
+                list($user, $pwd, $local) = $credentials;
+
+                $action = compose(
+                    constantFunction(urlGenerator('dbgen', $credentials, ['{db}' => $database])),
+                    partialRight(partialLeft(\Chemem\Bingo\Functional\Algorithms\concat, '/'), '_revs_limit'),
+                    function (string $url) use ($opt, $revLimit, $local, $user, $pwd) {
+                        $auth = !$local ? [] : [\CURLOPT_HTTPAUTH => true, \CURLOPT_USERPWD => concat(':', $user, $pwd)];
+
+                        $action = fetch(
+                            $url,
+                            ...patternMatch(
+                               [
+                                   '"set"' => function () use ($revLimit, $auth) { return ['PUT', [\CURLOPT_POSTFIELDS => (string) $revLimit] + $auth]; },
+                                   '"get"' => function () use ($auth) { return ['GET', $auth]; },
+                                   '_' => function () use ($auth) { return ['POST', $auth]; }
+                               ],
+                               $opt 
+                            )
+                        );
+
+                        return $action;
+                    }
+                );
+
+                return $action(null)->flatMap(collection);
             }
         );
 }
