@@ -21,8 +21,11 @@ use function \Chemem\Bingo\Functional\Algorithms\{
     compose,
     isArrayOf, 
     partialLeft, 
-    partialRight
+    partialRight,
+    constantFunction
 };
+
+const collection = 'Chemem\\Bingo\\Functional\\Immutable\\Collection::from';
 
 /**
  * credentialsFromFile :: Optional -> IO
@@ -531,6 +534,69 @@ function changes(string $database, array $params = []) : Collection
                     '{params}' => (!empty($params) ? \http_build_query($params) : identity(''))
                 ])
                     ->flatMap(function ($response) { return isset($response['results']) ? Collection::from(...pluck($response, 'results')) : Collection::from($response); });
+            }
+        );
+}
+
+/**
+ * compact :: String database -> String ddoc -> Collection
+ */
+
+const compact = 'Chemem\\Fauxton\\Http\\compact';
+
+function compact(string $database, string $ddoc = '')
+{
+    return credentialsFromFile()
+        ->flatMap(
+            function (array $credentials) use ($ddoc, $database) {
+                list($user, $pwd, $local) = $credentials;
+                
+                $action = compose(
+                    constantFunction(urlGenerator('dbgen', $credentials, ['{db}' => $database])),
+                    partialRight(partialLeft(\Chemem\Bingo\Functional\Algorithms\concat, '/'), $ddoc, '_compact'),
+                    partialRight('rtrim', '/'),
+                    partialRight(fetch, !$local ? [] : [\CURLOPT_HTTPAUTH => true, \CURLOPT_USERPWD => concat(':', $user, $pwd)], 'POST')
+                );
+
+                return $action(null)->flatMap(collection);
+            }
+        );
+}
+
+/**
+ * revLimit :: String opt -> String database -> Int revLimit -> Collection
+ */
+
+function revLimit(string $opt, string $database, int $revLimit = 1000)
+{
+    return credentialsFromFile()
+        ->flatMap(
+            function (array $credentials) use ($opt, $database, $revLimit) {
+                list($user, $pwd, $local) = $credentials;
+
+                $action = compose(
+                    constantFunction(urlGenerator('dbgen', $credentials, ['{db}' => $database])),
+                    partialRight(partialLeft(\Chemem\Bingo\Functional\Algorithms\concat, '/'), '_revs_limit'),
+                    function (string $url) use ($opt, $revLimit, $local, $user, $pwd) {
+                        $auth = !$local ? [] : [\CURLOPT_HTTPAUTH => true, \CURLOPT_USERPWD => concat(':', $user, $pwd)];
+
+                        $action = fetch(
+                            $url,
+                            ...patternMatch(
+                               [
+                                   '"set"' => function () use ($revLimit, $auth) { return ['PUT', [\CURLOPT_POSTFIELDS => (string) $revLimit] + $auth]; },
+                                   '"get"' => function () use ($auth) { return ['GET', $auth]; },
+                                   '_' => function () use ($auth) { return ['POST', $auth]; }
+                               ],
+                               $opt 
+                            )
+                        );
+
+                        return $action;
+                    }
+                );
+
+                return $action(null)->flatMap(collection);
             }
         );
 }
