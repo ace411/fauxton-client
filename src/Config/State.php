@@ -10,12 +10,9 @@ class State
 
     const COUCH_URI_CLOUDANT = 'https://{cloudantUser}:{cloudantPass}@{cloudantHost}';
 
-    const COUCH_CURLOPTS_DEFAULT = [
-        \CURLOPT_RETURNTRANSFER => true,
-        \CURLOPT_HTTPHEADER => [
-            'Content-Type: application/json',
-            'Accept: application/json'
-        ]
+    const COUCH_REQHEADERS = [
+        'Content-Type: application/json',
+        'Accept: application/json'
     ];
 
     const COUCH_ACTIONS = [
