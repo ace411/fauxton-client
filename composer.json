@@ -3,6 +3,7 @@
     "description": "A simple CouchDB interaction library.",
     "type": "library",
     "license": "MIT",
+    "minimum-stability": "dev",
     "authors": [
         {
             "name": "Lochemem Bruno Michael",
@@ -30,6 +31,11 @@
     "autoload-dev": {
         "psr-4": {
             "Chemem\\Fauxton\\Tests\\": "tests"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "1.0-dev"
         }
     }
 }
