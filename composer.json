@@ -25,8 +25,7 @@
         "files": [
             "src/Http/Http.php",
             "src/Http/Actions.php",
-            "src/Console/Console.php",
-            "src/FileSystem/Files.php"
+            "src/Console/Console.php"
         ]
     },
     "autoload-dev": {
