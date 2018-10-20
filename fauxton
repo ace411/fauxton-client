@@ -27,37 +27,28 @@ if (!defined('AUTOLOAD_PHP_FILE')) {
 
 require AUTOLOAD_PHP_FILE;
 
-use function \Chemem\Bingo\Functional\Algorithms\{compose, concat, identity, partialLeft, partialRight};
+use Chemem\Fauxton\Console;
+use Chemem\Fauxton\Config\State;
+use \Chemem\Bingo\Functional\Algorithms as A;
+use \Chemem\Bingo\Functional\Functors\Monads as M;
+use \Chemem\Bingo\Functional\Functors\Monads\IO;
 
-$print = partialRight('json_encode', \JSON_PRETTY_PRINT);
-
-set_error_handler(function ($errNo, $errStr) use ($print) { echo $print(['code' => $errNo, 'message' => $errStr]); });
-
-set_exception_handler(
-    function ($exception) use ($print) { 
-        echo $print([
-            'error' => $exception->getCode(),
-            'message' => $exception->getMessage()
-        ]);
-        
-        return false;
-    }
-);
-
-echo concat(\PHP_EOL, 'Fauxton Console', 'Built by Lochemem Bruno Michael', identity(''));
-
-function main()
+function main() : IO
 {
-    $repl = compose(
-        \Chemem\Fauxton\Console\fetch,
-        \Chemem\Fauxton\Console\parse,
-        \Chemem\Fauxton\Console\convey
+    $result = A\compose(
+        A\constantFunction(Console\replPrompt()),
+        A\constantFunction(M\mcompose(function ($fgets) {
+            $repl = A\compose($fgets, Console\execCmd, IO\IO);
+            return $repl(\STDIN);
+        }, IO\putStr)(IO\IO(null)))
     );
 
-    return $repl(null)
-        ->flatMap(partialLeft('printf', '%s'));
+    return $result(null)->exec();
 }
 
-while (true) {
-    if (main() == 6) break;
-}
+M\bind(function (string $msg) {
+    $result = A\compose(A\partial('printf', '%s'), IO\IO);
+    return $result($msg);
+}, IO\IO(A\concat(\PHP_EOL, 'Fauxton Console', 'Built By Lochemem Bruno Michael', '')));
+
+while (true) IO\_print(main());
