@@ -15,7 +15,6 @@
     },
     "require": {
         "php": ">=7.0",
-        "lib-curl": "*",
         "chemem/bingo-functional": "~1"  
     },
     "autoload": {
@@ -24,8 +23,7 @@
         },
         "files": [
             "src/Http/Http.php",
-            "src/Http/Actions.php",
-            "src/FileSystem/Files.php"
+            "src/Http/Actions.php"
         ]
     },
     "autoload-dev": {
