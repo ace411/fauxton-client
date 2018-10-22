@@ -200,7 +200,7 @@ function doc(string $database, string $docId, array $params = []) : IO
             'docById' => [
                 '{db}' => $database,
                 '{docId}' => $docId,
-                '{params}' => $params
+                '{params}' => empty($params) ? A\identity('') : \http_build_query($params)
             ]
         ]);
     });
@@ -232,4 +232,75 @@ function changes(string $database, array $params = []) : IO
             ]
         ]);
     });
+}
+
+const modify = 'Chemem\\Fauxton\\Http\\modify';
+
+function modify(string $opt, string $database, array $data, array $update = []) : IO
+{
+    return execute(function (string $contents) use ($opt, $database, $data, $update) {
+        $res = A\partial(precond, $contents);
+        $bulk = ['bulkDocs' => ['{db}' => $database]];
+        $single = [
+            'deleteDocs' => [
+                '{db}' => $database,
+                '{ddoc}' => isset($data['_id']) ? A\pluck($data, '_id') : A\identity(''),
+                '{rev}' => isset($data['_rev']) ? A\pluck($data, '_rev') : A\identity('')
+            ]
+        ];
+        return patternMatch(
+            [
+                '["update", "bulk"]' => function () use ($res, $bulk, $data, $update, $database) {
+                    $concat = function ($docs) use ($update) {
+                        $upCount = count($update);
+                        return A\isArrayOf($update) == 'array' ?
+                            $upCount == 1 ? 
+                                A\map(function ($doc) use ($update) : array {
+                                    return A\extend($doc, ...$update);
+                                }, $docs) : 
+                                array_map(function ($doc, $upd) : array {
+                                    return A\extend($doc, $upd);
+                                }, $docs, $update) :
+                            A\identity($docs);
+                    };
+                    
+                    return $res([
+                        'method' => 'POST',
+                        'content' => \json_encode([
+                            'docs' => $concat(isset($data['docs']) ? A\pluck($data, 'docs') : A\identity([]))
+                        ])
+                    ])($bulk);
+                },
+                '["delete", "bulk"]' => function () use ($res, $bulk, $data, $database) {
+                    $concat = A\partial(A\map, function ($doc) {
+                        return A\extend($doc, ['_deleted' => true]);
+                    });
+
+                    return $res([
+                        'method' => 'POST',
+                        'content' => \json_encode([
+                            'docs' => $concat(isset($data['docs']) ? A\pluck($data, 'docs') : A\identity([]))
+                        ])
+                    ])($bulk);
+                },
+                '["update"]' => function () use ($res, $data, $update, $database, $single) {
+                    $modify = A\compose(
+                        A\partialRight(A\omit, '_rev', '_id'),
+                        A\partialRight(A\extend, $update),
+                        'json_encode'
+                    );
+
+                    return $res([
+                        'method' => 'PUT',
+                        'content' => $modify($data)
+                    ])($single);
+                }, 
+                '["delete"]' => function () use ($res, $single, $database) {
+                    return $res(['method' => 'DELETE'])($single);
+                },
+                '_' => function () {}
+            ],
+            explode('_', $opt)
+        );
+    }); 
 }
