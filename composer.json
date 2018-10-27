@@ -15,17 +15,15 @@
     },
     "require": {
         "php": ">=7.0",
-        "lib-curl": "*",
-        "chemem/bingo-functional": "~1"  
+        "chemem/bingo-functional": "~1",
+        "composer/ca-bundle": "~1"  
     },
     "autoload": {
         "psr-4": {
             "Chemem\\Fauxton\\": "src/"
         },
         "files": [
-            "src/Http/Http.php",
-            "src/Http/Actions.php",
-            "src/Console/Console.php"
+            "src/Http/Http.php"
         ]
     },
     "autoload-dev": {
