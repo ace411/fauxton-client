@@ -15,7 +15,8 @@
     },
     "require": {
         "php": ">=7.0",
-        "chemem/bingo-functional": "~1"  
+        "chemem/bingo-functional": "~1",
+        "composer/ca-bundle": "~1"  
     },
     "autoload": {
         "psr-4": {
