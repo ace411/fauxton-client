@@ -23,8 +23,7 @@
             "Chemem\\Fauxton\\": "src/"
         },
         "files": [
-            "src/Http/Http.php",
-            "src/Http/Actions.php"
+            "src/Http/Http.php"
         ]
     },
     "autoload-dev": {
