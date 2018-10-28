@@ -4,6 +4,7 @@ namespace Chemem\Fauxton\Console;
 
 use Chemem\Fauxton\Http;
 use Chemem\Fauxton\Config\State;
+use JakubOnderka\PhpConsoleColor\ConsoleColor;
 use \Chemem\Bingo\Functional\Algorithms as A;
 use \Chemem\Bingo\Functional\Functors\Monads\IO;
 use \Chemem\Bingo\Functional\Functors\Monads as M;
@@ -183,4 +184,15 @@ function formatOutput(string $contents) : IO
     );
 
     return $format($contents);
+}
+
+const color = 'Chemem\\Fauxton\\Console\\color';
+
+function color(string $text, string $style = 'none')
+{
+    $color = new ConsoleColor;
+
+    return in_array($style, $color->getPossibleStyles()) && $color->isSupported() ?
+        $color->apply($style, $text) :
+        A\identity($text);
 }
