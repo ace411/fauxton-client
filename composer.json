@@ -3,6 +3,7 @@
     "description": "A simple CouchDB interaction library.",
     "type": "library",
     "license": "MIT",
+    "minimum-stability": "dev",
     "authors": [
         {
             "name": "Lochemem Bruno Michael",
@@ -16,10 +17,9 @@
     },
     "require": {
         "php": ">=7.0",
-        "lib-curl": "*",
-        "chemem/bingo-functional": "dev-master",
-        "jakub-onderka/php-console-color": "0.1",
-        "react/event-loop": "~1"  
+        "chemem/bingo-functional": "~1",
+        "composer/ca-bundle": "~1",
+        "jakub-onderka/php-console-color": "~0.1"  
     },
     "autoload": {
         "psr-4": {
@@ -27,9 +27,7 @@
         },
         "files": [
             "src/Http/Http.php",
-            "src/Http/Actions.php",
-            "src/Console/Console.php",
-            "src/FileSystem/Files.php"
+            "src/Console/Console.php"
         ]
     },
     "autoload-dev": {
@@ -37,5 +35,10 @@
             "Chemem\\Fauxton\\Tests\\": "tests"
         }
     },
-    "bin": ["fauxton"]
+    "bin": ["fauxton"],
+    "extra": {
+        "branch-alias": {
+            "dev-master": "1.0-dev"
+        }
+    }
 }
