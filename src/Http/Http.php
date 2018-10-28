@@ -2,7 +2,7 @@
 
 /**
  * 
- * fauxton-client http request function
+ * fauxton-client db http functions
  * 
  * @package fauxton-client
  * @author Lochemem Bruno Michael
