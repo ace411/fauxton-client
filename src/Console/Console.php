@@ -104,21 +104,45 @@ function execCmd(string $cmd) : IO
                 });
             },
             '["doc", database, docId]' => function (string $database, string $docId) {
-                return M\bind(function ($contents) {
-                    $res = A\compose(
-                        A\partialRight('json_decode', true),
-                        A\partialRight('json_encode', \JSON_PRETTY_PRINT),
-                        formatOutput
-                    );
-                    return $res($contents);
-                }, Http\doc($database, $docId));
+                return outputAction(Http\doc($database, $docId));
+            },
+            '["db", database]' => function (string $database) {
+                return outputAction(Http\database('get', $database));
+            },
+            '["uuids", count]' => function (string $count) {
+                return outputAction(Http\uuids(is_numeric($count) ? (int) $count : 1));
+            },
+            '["doc", database, docId]' => function (string $database, string $docId) {
+                return outputAction(Http\doc($database, $docId, ['include_docs' => 'true']));
+            },
+            '["explain", cmd]' => function (string $cmd) {
+                $res = A\compose(
+                    A\partialRight(A\pluck, $cmd),
+                    A\identity('array_values'),
+                    A\partialRight('json_encode', \JSON_PRETTY_PRINT),
+                    formatOutput
+                );
+                return key_exists($cmd, State::CONSOLE_COMMANDS) ? 
+                    $res(State::CONSOLE_COMMANDS) :
+                    IO\IO(color(A\concat(' ', $cmd, 'not supported'), 'yellow'));
+            },
+            '["alldbs"]' => function () {
+                return outputAction(Http\allDbs());
+            },
+            '["help"]' => function () {
+                $res = A\compose(function (array $cmd) {
+                    $out = \array_map(function ($key, $val) {
+                        return A\concat(': ', $key, A\pluck($val, 'desc')); 
+                    }, \array_keys($cmd), \array_values($cmd));
+                    return \json_encode($out, \JSON_PRETTY_PRINT);
+                }, formatOutput);
+
+                return $res(State::CONSOLE_COMMANDS);
             },
             '["config"]' => function () {
-                $config = M\mcompose(function ($contents) {
+                return configRead(function ($contents) {
                     return formatOutput($contents);
-                }, IO\readFile);
-
-                return $config(IO\IO(Http\path(State::CLIENT_CONFIG_FILE)));
+                });
             },
             '["exit"]' => function () {
                 M\bind(function (string $msg) {
@@ -128,7 +152,8 @@ function execCmd(string $cmd) : IO
                 exit();
             },
             '_' => function () {
-                return IO\IO('Input not recognized');
+                $output = A\compose(A\partialRight(color, 'red'), IO\IO);
+                return $output('Input not recognized');
             }
         ],
         explode(' ', $cmd)
@@ -172,10 +197,10 @@ const formatOutput = 'Chemem\\Fauxton\\Console\\formatOutput';
 function formatOutput(string $contents) : IO
 {
     $format = A\compose(
-        A\partial('str_replace', '{', \implode('-', \array_fill(0, 10, '-'))),
-        A\partial('str_replace', '}', \implode('-', \array_fill(0, 10, '-'))),
-        A\partial('str_replace', '[', \implode('=', \array_fill(0, 10, '='))),
-        A\partial('str_replace', ']', \implode('=', \array_fill(0, 10, '='))),
+        A\partial('str_replace', '{', \implode('.', \array_fill(0, 3, '.'))),
+        A\partial('str_replace', '}', \implode('.', \array_fill(0, 3, '.'))),
+        A\partial('str_replace', '[', \implode('.', \array_fill(0, 3, '.'))),
+        A\partial('str_replace', ']', \implode('.', \array_fill(0, 3, '.'))),
         A\partial('str_replace', '\\t', ' '),
         A\partial('str_replace', '"', ''),
         A\partial('str_replace', ',', ''),
@@ -195,4 +220,18 @@ function color(string $text, string $style = 'none')
     return in_array($style, $color->getPossibleStyles()) && $color->isSupported() ?
         $color->apply($style, $text) :
         A\identity($text);
+}
+
+const outputAction = 'Chemem\\Fauxton\\Console\\outputAction';
+
+function outputAction(IO $action) : IO
+{
+    return M\bind(function ($contents) {
+        $res = A\compose(
+            A\partialRight('json_decode', true),
+            A\partialRight('json_encode', \JSON_PRETTY_PRINT),
+            formatOutput
+        );
+        return $res($contents);
+    }, $action);
 }
