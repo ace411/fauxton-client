@@ -152,7 +152,7 @@ function database(string $opt, string $database) : IO
             )
         ]);
 
-        return $result(['db' => ['{db}' => $database]]);
+        return $result(['dbgen' => ['{db}' => $database]]);
     });
 }
 
