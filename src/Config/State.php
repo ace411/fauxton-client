@@ -118,6 +118,10 @@ class State
         'explain' => [
             'doc' => 'explain <command> eg explain alldocs',
             'desc' => 'Provides a description of a command'
+        ],
+        'db' => [
+            'doc' => 'db <database> eg db action_movies',
+            'desc' => 'Shows database metadata'
         ]
     ];
 }
