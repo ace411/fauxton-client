@@ -33,6 +33,32 @@ use \Chemem\Bingo\Functional\Algorithms as A;
 use \Chemem\Bingo\Functional\Functors\Monads as M;
 use \Chemem\Bingo\Functional\Functors\Monads\IO;
 
+function errorHandler(string $msg, bool $type = false) : bool
+{
+    $err = M\bind(function ($msg) use ($type) {
+        $handler = A\compose(
+            A\partial(A\concat, ' ', $type ? 'Exception' : 'Error:'),
+            A\partialRight(Console\color, $type ? 'red' : 'yellow'), 
+            A\partial('printf', '%s'), 
+            function ($content) : bool {
+                return $content > 0 ? true : false;
+            },
+            IO\IO
+        );
+        return $handler($msg);
+    }, IO\IO($msg));
+
+    return $err->exec();
+}
+
+set_exception_handler(function ($exception) {
+    return errorHandler($exception->getMessage(), true);
+});
+
+set_error_handler(function ($errno, $errstr) {
+    return errorHandler($errstr);
+});
+
 function main() : IO
 {
     $result = A\compose(
