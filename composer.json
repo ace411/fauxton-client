@@ -16,14 +16,16 @@
     "require": {
         "php": ">=7.0",
         "chemem/bingo-functional": "~1",
-        "composer/ca-bundle": "~1"  
+        "composer/ca-bundle": "~1",
+        "jakub-onderka/php-console-color": "~0.1"  
     },
     "autoload": {
         "psr-4": {
             "Chemem\\Fauxton\\": "src/"
         },
         "files": [
-            "src/Http/Http.php"
+            "src/Http/Http.php",
+            "src/Console/Console.php"
         ]
     },
     "autoload-dev": {
