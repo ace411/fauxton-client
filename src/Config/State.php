@@ -67,18 +67,7 @@ class State
     ];
 
     const CONSOLE_FEATURES = [
-        'prompt' => '>>> ',
-        'db' => 'Database name: ',
-        'index' => 'Index name: ',
-        'view' => 'View name: ',
-        'dbFields' => 'Fields: ',
-        'docId' => 'Document id: ',
-        'docRev' => 'Document rev: ',
-        'ddoc' => 'Design document: ',
-        'search' => 'Search selector: ',
-        'map' => 'Map function: ',
-        'reduce' => 'Reduce function: ',
-        'rereduce' => 'Rereduce function: '
+        'prompt' => '>>> '
     ];
 
     const CONSOLE_COMMANDS = [
@@ -90,28 +79,32 @@ class State
             'doc' => 'config',
             'desc' => 'Shows the fauxton client configuration'
         ],
-        'dbs' => [
-            'doc' => 'dbs',
+        'alldbs' => [
+            'doc' => 'alldbs',
             'desc' => 'Shows all available databases'
         ],
         'uuids' => [
             'doc' => 'uuids <count> eg uuids 2',
             'desc' => 'Outputs a specified number of unique ids'
         ],
-        'local' => [
-            'doc' => 'local <username> <password> eg local foo foobar',
-            'desc' => 'Sets local CouchDB username and password'
+        'cred' => [
+            'doc' => 'cred <type> <username> <password> eg cred local foo foobar',
+            'desc' => 'Sets CouchDB username and password'
         ],
-        'cloudant' => [
-            'doc' => 'cloudant <username> <password> eg cloudant xxx-bluemix yyybar',
-            'desc' => 'Sets IBM Cloudant username and password'
+        'gzip' => [
+            'doc' => 'gzip <database> <file> eg gzip meetups meetups.gz',
+            'desc' => 'gzips a database\'s contents'
+        ],
+        'unzip' => [
+            'doc' => 'unzip <file> eg unzip meetups.gz',
+            'desc' => 'unzips gzipped file'
         ],
         'use' => [
             'doc' => 'use <option> eg use local',
             'desc' => 'Modifies local parameter in fauxton-client configuration'
         ],
-        'docs' => [
-            'doc' => 'docs <database> eg docs nba_players',
+        'alldocs' => [
+            'doc' => 'alldocs <database> eg docs nba_players',
             'desc' => 'Outputs all the documents in a database'
         ],
         'doc' => [
@@ -119,12 +112,12 @@ class State
             'desc' => 'Outputs a document\'s contents' 
         ],
         'search' => [
-            'doc' => 'search <database> eg search rap_artists',
-            'desc' => '** Searches a database (Powered by Mango queries)'
+            'doc' => 'search <database> <selector> eg search rap_artists {"name":{"$eq":"bronson"}}',
+            'desc' => 'Searches a database (Powered by Mango queries)'
         ],
-        'new' => [
-            'doc' => 'new <option> (database|view|index|design-doc) eg new db',
-            'desc' => 'Creates one of either a new document, new view, new index, or new design document'
+        'explain' => [
+            'doc' => 'explain <command> eg explain alldocs',
+            'desc' => 'Provides a description of a command'
         ]
     ];
 }
