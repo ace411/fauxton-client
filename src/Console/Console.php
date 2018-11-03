@@ -57,7 +57,7 @@ function execCmd(string $cmd) : IO
                     $final = A\compose(A\partialRight('json_decode', true), $check, 'json_encode');
                     $resource = \gzopen($file, 'w9');
                     \gzwrite($resource, $final($contents));
-                    return IO\IO(\gzclose($resource) ? 'Success' : 'Failure');
+                    return IO\IO(\gzclose($resource) ? color('Success', 'green') : color('Failure', 'red'));
                 }, A\partialRight(Http\allDocs, ['include_docs' => 'true']));
 
                 return $zip(IO\IO($database));
@@ -110,9 +110,6 @@ function execCmd(string $cmd) : IO
                         return $res($contents);
                     }, Http\allDocs($database, $res($contents)));
                 });
-            },
-            '["doc", database, docId]' => function (string $database, string $docId) {
-                return outputAction(Http\doc($database, $docId));
             },
             '["db", database]' => function (string $database) {
                 return outputAction(Http\database('get', $database));
@@ -179,7 +176,11 @@ function configWrite(callable $action) : IO
     return configRead(function (string $contents) use ($action) {
         $result = M\mcompose(A\partial(IO\writeFile, Http\path(State::CLIENT_CONFIG_FILE)), $action);
         return M\bind(function (int $result) {
-            return IO\IO($result > 0 ? 'Credentials updated' : 'Credentials not updated');
+            return IO\IO(
+                $result > 0 ? 
+                    color('Credentials updated', 'green') : 
+                    color('Credentials not updated', 'red')
+            );
         }, $result(IO\IO(json_decode($contents, true))));
     }); 
 }

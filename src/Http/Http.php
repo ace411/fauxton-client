@@ -88,7 +88,7 @@ function urlGenerate(array $credentials, array $params) : string
     return $gen($fragments);
 }
 
-const authHeaders = 'Chemem\\Fauxton\\Http\\execute';
+const authHeaders = 'Chemem\\Fauxton\\Http\\authHeaders';
 
 function authHeaders(array $credentials, array $ancillary = []) : array
 {
