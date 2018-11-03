@@ -103,9 +103,6 @@ function execCmd(string $cmd) : IO
                     }, Http\allDocs($database, $res($contents)));
                 });
             },
-            '["doc", database, docId]' => function (string $database, string $docId) {
-                return outputAction(Http\doc($database, $docId));
-            },
             '["db", database]' => function (string $database) {
                 return outputAction(Http\database('get', $database));
             },
