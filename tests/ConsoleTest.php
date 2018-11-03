@@ -4,288 +4,271 @@ namespace Chemem\Fauxton\Tests;
 
 use \Eris\Generator;
 use \Chemem\Fauxton\Config\State;
+use \Chemem\Fauxton\Console;
 use \Chemem\Bingo\Functional\Functors\Monads\IO;
+use \Chemem\Bingo\Functional\Functors\Monads as M;
 use function \Chemem\Bingo\Functional\PatternMatching\patternMatch;
-use function \Chemem\Fauxton\Console\{convey, parse};
-use function \Chemem\Bingo\Functional\Algorithms\{
-    head, 
-    pluck, 
-    omit, 
-    concat, 
-    extend, 
-    compose, 
-    partialLeft, 
-    partialRight,
-    arrayKeysExist
-};
+use \Chemem\Bingo\Functional\Algorithms as A;
 
 class ConsoleTest extends \PHPUnit\Framework\TestCase
 {
     use \Eris\TestTrait;
 
-    public function mockStdin(string $prompt, string $input) : IO
+    public static function mockStdin(string $input) : IO
     {
-        return IO::of([$prompt => $input]);
+        return IO\IO($input);
     }
 
-    public function mockParser(IO $stdin, array $params = [])
+    public static function decodeResponse(IO $response) : IO
     {
-        return $stdin
-            ->map(
-                function (array $input) {
-                    $pattern = compose(
-                        'array_values',
-                        \Chemem\Bingo\Functional\Algorithms\head,
-                        partialLeft('explode', ' ')
-                    );
+        return M\bind(function (string $resp) {
+            return Console\formatOutput($resp);
+        }, $response); 
+    }
 
-                    return $pattern($input);
-                }
-            )
-            ->map(
-                function (array $pattern) use ($params) {
-                    return patternMatch(
+    public function mockParser(string $cmd, string $data = '') : IO
+    {
+        $http = new HttpTest;
+        return patternMatch(
+            [
+                '["cred", type, user, pass]' => function (string $type, string $user, string $pass) {
+                    return Console\configRead(function ($contents) use ($type, $user, $pass) {
+                        $config = \json_decode($contents, true);
+                        $config['username'][$type] = $user;
+                        $config['password'][$type] = $pass;
+                        return IO\IO(
+                            $config['username'][$type] == $user && $config['password'][$type] == $pass ?
+                            'Credentials updated' :
+                            'Credentials not updated'
+                        );
+                    });
+                },
+                '["use", option]' => function (string $option) {
+                    return Console\configRead(function ($contents) use ($option) {
+                        $config = \json_decode($contents, true);
+                        $config['local'] = $option == 'local' ? true : false;
+                        return IO\IO('Credentials updated');
+                    });
+                },
+                '["doc", database, docId]' => function (string $database, string $docId) use ($http, $data) {
+                    $res = $http->mockHttpFetch(
                         [
-                            '["new", item]' => function (string $item) use ($params) {
-                                return $this->mockStdin(
-                                    pluck(State::CONSOLE_FEATURES, 'db'),
-                                    pluck($params, 'db') 
-                                )
-                                    ->flatMap(function ($query) use ($params) { return extend($query, omit($params, 'db')); });
-                            },
-                            '["uuids", count]' => function (string $count) use ($params) {
-                                return (new HttpTest)
-                                    ->mockFetch('uuids', 'GET', 200, ['{count}' => (int) $count], $params)
-                                    ->exec();
-                            },
-                            '["docs", database]' => function (string $database) use ($params) {
-                                return (new HttpTest)
-                                    ->mockFetch('allDocs', 'GET', 200, ['{db}' => $database, '{params}' => '?include_docs=true'], $params)
-                                    ->exec();
-                            },
-                            '["search", database]' => function (string $database) use ($params) {
-                                return $this->mockStdin(
-                                    pluck(State::CONSOLE_FEATURES, 'search'),
-                                    pluck($params, 'search')
-                                )
-                                    ->flatMap(function ($query) use ($params) { return extend($query, omit($params, 'search')); });
-                            },
-                            '_' => function () { return 'Invalid Input'; }
+                            'docById' => [
+                                '{db}' => $database, 
+                                '{docId}' => $docId, 
+                                '{params}' => 'include_docs=true'
+                            ]
                         ],
-                        $pattern
+                        [200, 'GET', State::COUCH_REQHEADERS, $data]    
                     );
-                }
-            );
-    }
-
-    public function testConveyFunctionEvaluatesToParsedInputString()
-    {
-        $prompt = pluck(State::CONSOLE_FEATURES, 'prompt');
-        
-        $this->forAll(
-            Generator\elements('new view', 'search dummy_data', 'config'),
-            Generator\elements(
-                ['db' => 'dummy_docs'],
-                ['selector' => '{"selector": {"_id": {"$eq": "abc123"}}'],
-                []
-            )
-        )
-            ->then(
-                function ($cmd, $params) use ($prompt) {
-                    $output = convey($this->mockParser($this->mockStdin($prompt, $cmd), $params));
-
-                    $this->assertInstanceOf(\Chemem\Bingo\Functional\Functors\Monads\IO::class, $output);
-                    $this->assertInternalType('string', $output->exec());
-                }
-            );
-    }
-
-    public function testLocalCommandModifiesFauxtonConfiguration()
-    {
-        $this->limitTo(5)
-            ->forAll(
-                Generator\names(),
-                Generator\map('md5', Generator\string())
-            )
-            ->then(
-                function ($user, $pwd) {
-                    $local = parse(
-                        $this->mockStdin(pluck(State::CONSOLE_FEATURES, 'prompt'), concat(' ', 'local', $user, $pwd))
-                            ->map(\Chemem\Bingo\Functional\Algorithms\head)
+                    return self::decodeResponse($res);
+                },
+                '["db", database]' => function (string $database) use ($http, $data) {
+                    $res = $http->mockHttpFetch(
+                        ['dbgen' => ['{db}' => $database]],
+                        [200, 'GET', State::COUCH_REQHEADERS, $data]
                     );
-
-                    $this->assertInstanceOf(\Chemem\Bingo\Functional\Functors\Monads\IO::class, $local);
-                    $this->assertInternalType('string', $local->exec());
-                }
-            );
-    }
-
-    public function testCloudantCommandModifiesFauxtonConfiguration()
-    {
-        $this->limitTo(5)
-            ->forAll(
-                Generator\map(
-                    function ($string) {
-                        $hash = compose('md5', partialRight(partialLeft(\Chemem\Bingo\Functional\Algorithms\concat, '-'), 'bluemix'));
-
-                        return $hash($string);
-                    },
-                    Generator\string()
-                ),
-                Generator\map(partialLeft('hash', 'sha256'), Generator\string())
-            )
-            ->then(
-                function ($user, $pwd) {
-                    $cloudant = parse(
-                        $this->mockStdin(pluck(State::CONSOLE_FEATURES, 'prompt'), concat(' ', 'local', $user, $pwd))
-                            ->map(\Chemem\Bingo\Functional\Algorithms\head)
+                    return self::decodeResponse($res);
+                },
+                '["alldocs", database]' => function (string $database) use ($http, $data) {
+                    $res = $http->mockHttpFetch(
+                        [
+                            'allDocs' => [
+                                '{db}' => $database, 
+                                '{params}' => 'include_docs=true'
+                            ]
+                            ],
+                        [200, 'GET', State::COUCH_REQHEADERS, $data]
                     );
-
-                    $this->assertInstanceOf(\Chemem\Bingo\Functional\Functors\Monads\IO::class, $cloudant);
-                    $this->assertInternalType('string', $cloudant->exec());
-                }
-            );
-    }
-
-    public function testUseCommandModifiesFauxtonConfiguration()
-    {
-        $this->forAll(Generator\elements('local', 'cloudant'))
-            ->then(
-                function ($opt) {
-                    $use = parse(
-                        $this->mockStdin(pluck(State::CONSOLE_FEATURES, 'prompt'), concat(' ', 'use', $opt))
-                            ->map(\Chemem\Bingo\Functional\Algorithms\head)
+                    return self::decodeResponse($res);
+                },
+                '["uuids", count]' => function (string $count) use ($http, $data) {
+                    $result = $http->mockHttpFetch(
+                        ['uuids' => ['{count}' => $count]],
+                        [200, 'GET', State::COUCH_REQHEADERS, $data]
                     );
-
-                    $this->assertInstanceOf(\Chemem\Bingo\Functional\Functors\Monads\IO::class, $use);
-                    $this->assertInternalType('string', $use->exec());
+                    return self::decodeResponse($result);
+                },
+                '["explain", cmd]' => function (string $cmd) {
+                    return Console\execCmd(A\concat(' ', 'explain', $cmd));
+                },
+                '["help"]' => function () {
+                    return Console\execCmd('help');
+                },
+                '["config"]' => function () {
+                    return Console\execCmd('config');
+                },
+                '["alldbs"]' => function () use ($http, $data) {
+                    $result = $http->mockFetch(
+                        ['allDbs' => []],
+                        [200, 'GET', State::COUCH_REQHEADERS, $data]
+                    );
+                    return self::decodeResponse($result);
+                },
+                '_' => function () {
+                    return Console\execCmd('cmd');
                 }
-            );
-    }
-
-    public function testConfigCommandOutputsFauxtonClientConfigurationFileContents()
-    {
-        $config = parse(
-            $this->mockStdin(pluck(State::CONSOLE_FEATURES, 'prompt'), 'config')
-                ->map(\Chemem\Bingo\Functional\Algorithms\head)
+            ],
+            explode(' ', $cmd)
         );
-
-        $this->assertInstanceOf(\Chemem\Bingo\Functional\Functors\Monads\IO::class, $config);
-        $this->assertTrue(arrayKeysExist($config->exec(), 'username', 'password', 'local'));
     }
 
-    public function testHelpCommandOutputsListOfCommands()
+    public function testUnrecognizedInputEvaluatesToUnrecognizedInputMessage()
     {
-        $help = parse(
-            $this->mockStdin(pluck(State::CONSOLE_FEATURES, 'prompt'), 'help')
-                ->map(\Chemem\Bingo\Functional\Algorithms\head)
-        );
+        $this->forAll(Generator\string())
+            ->then(function ($string) {
+                $parse = $this->mockParser($string);
 
-        $this->assertInstanceOf(\Chemem\Bingo\Functional\Functors\Monads\IO::class, $help);
-        $this->assertInternalType('string', $help->exec());
+                $this->assertInstanceOf(IO::class, $parse);
+                $this->assertInternalType('string', $parse->exec());
+                $this->assertEquals(Console\color('Input not recognized', 'red'), $parse->exec());
+            });
     }
 
-    public function testExplainCommandOutputsCommandAndAccompanyingDescription()
+    public function testCredCommandModifiesClientConfiguration()
     {
-        $this->forAll(Generator\elements(...array_keys(State::CONSOLE_COMMANDS)))
-            ->then(
-                function ($cmd) {
-                    $xtics = parse(
-                        $this->mockStdin(pluck(State::CONSOLE_FEATURES, 'prompt'), concat(' ', 'explain', $cmd))
-                            ->map(\Chemem\Bingo\Functional\Algorithms\head)
-                    );
+        $this->forAll(Generator\names(), Generator\string())
+            ->then(function ($user, $pwd) {
+                $cred = $this->mockParser(A\concat(' ', 'cred', 'local', $user, $pwd));
 
-                    $this->assertInstanceOf(\Chemem\Bingo\Functional\Functors\Monads\IO::class, $xtics);
-                    $this->assertInternalType('string', $xtics->exec());
-                    $this->assertContains(
-                        concat('- ', '', pluck(State::CONSOLE_COMMANDS[$cmd], 'desc')),
-                        $xtics->exec()
-                    );
-                }
-            );
+                $this->assertInstanceOf(IO::class, $cred);
+                $this->assertInternalType('string', $cred->exec());
+            });
     }
 
-    public function testUuidsCommandOutputsUniqueIds()
+    public function testUuuidsCommandOutputsUuids()
     {
         $this->forAll(
-            Generator\choose(1, 3),
+            Generator\choose(1, 2),
             Generator\elements(
-                ['75480ca477454894678e22eec6002413'],
+                ['uuids' => ['75480ca477454894678e22eec6002413']],
                 [
-                    '75480ca477454894678e22eec600250b',
-                    '75480ca477454894678e22eec6002c41'
-                ],
-                [
-                    '75480ca477454894678e22eec6003b90',
-                    '75480ca477454894678e22eec6003fca',
-                    '75480ca477454894678e22eec6004bef'
-                ]    
-            )
-        )
-            ->then(
-                function ($count, $response) {
-                    $uuids = $this->mockParser(
-                        $this->mockStdin(pluck(State::CONSOLE_FEATURES, 'prompt'), concat(' ', 'uuids', $count)),
-                        $response
-                    ); 
-
-                    $this->assertInternalType('string', $uuids->exec());
-                    $this->assertContainsOnly('string', $uuids->flatMap(partialRight('json_decode', true)));
-                }
-            );
-    }
-
-    public function testDocsCommandOutputsDatabaseDocuments()
-    {
-        $this->forAll(
-            Generator\elements('blog_posts', 'basketball_players', 'tv_shows'),
-            Generator\elements(
-                [
-                    [
-                        'id' => 'fauxton-client-rocks',
-                        'key' => '16e458537602f5ef2a710089dffd9453',
-                        'value' => [
-                            'rev' => '1-967a00dff5e02add41819138abb3284d'
-                        ]
-                    ],
-                    [
-                        'id' => 'functional-programming-rocks',
-                        'key' => 'a4c51cdfa2069f3e905c431114001aff',
-                        'value' => [
-                            'rev' => '1-967a00dff5e02add41819138abb3284d'
-                        ]
-                    ]
-                ],
-                [
-                    [
-                        'id' => 'miami-heat-roster',
-                        'key' => '24313b25786d0a6bf75e29d628cd5729',
-                        'value' => [
-                            'rev' => '1-a9a2c7beb67dedf0f8d319cd435f07df'
-                        ]
-                    ]
-                ],
-                [
-                    [
-                        'id' => 'game-of-thrones',
-                        'key' => 'e372c0b85e5fd5f92f44a849fcec6ed5',
-                        'value' => [
-                            'rev' => '1-6ff380e091065cddf91bc8249e513692'
-                        ]
+                    'uuids' => [
+                        'ba617077f2b71a2c3a53488657000cad',
+                        'ba617077f2b71a2c3a534886570017a7'
                     ]
                 ]
             )
         )
-            ->then(
-                function ($database, $result) {
-                    $docs = $this->mockParser(
-                        $this->mockStdin(pluck(State::CONSOLE_FEATURES, 'prompt'), concat(' ', 'docs', $database)),
-                        $result
-                    );
+            ->then(function ($count, $response) {
+                $uuids = $this->mockParser(A\concat(' ', 'uuids', (string) $count), \json_encode($response));
 
-                    $this->assertInternalType('string', $docs->exec());
-                    $this->assertContainsOnly('array', $docs->flatMap(partialRight('json_decode', true)));
-                }
-            );
+                $this->assertInstanceOf(IO::class, $uuids);
+                $this->assertInternalType('string', $uuids->exec());
+                $this->assertRegExp('/[\.\w\W]+$/', $uuids->exec());
+            });
+    }
+
+    public function testExplainCommandOutputsDescriptionOfCommand()
+    {
+        $this->forAll(Generator\elements(...\array_keys(State::CONSOLE_COMMANDS)))
+            ->then(function ($cmd) {
+                $explanation = $this->mockParser(A\concat(' ', 'explain', $cmd));
+
+                $this->assertInternalType('string', $explanation->exec());
+                $this->assertContains(
+                    A\pluck(State::CONSOLE_COMMANDS, $cmd)['desc'],
+                    $explanation->exec()
+                );
+            });
+    }
+
+    public function testHelpCommandOutputsAllCommands()
+    {
+        $this->forAll(Generator\constant('help'))
+            ->then(function ($cmd) {
+                $help = $this->mockParser($cmd);
+
+                $this->assertInternalType('string', $help->exec());
+                $this->assertInstanceOf(IO::class, $help);
+                $this->assertRegExp('/[\.\w\W]+$/', $help->exec());
+            });
+    }
+
+    public function testAllDbsCommandOutputsListOfAllDatabases()
+    {
+        $this->forAll(
+            Generator\constant(\json_encode([
+                'dummy_database',
+                'security'
+            ]))
+        )
+            ->then(function ($response) {
+                $dbs = $this->mockParser('allDbs', $response);
+                
+                $this->assertInstanceOf(IO::class, $dbs);
+                $this->assertInternalType('string', $dbs->exec());
+                $this->assertRegExp('/[\.\w\W]+$/', $dbs->exec());
+            });
+    }
+
+    public function testUseFunctionModifiesClientConfiguration()
+    {
+        $this->forAll(Generator\elements('cloudant', 'local'))
+            ->then(function ($option) {
+                $result = $this->mockParser(A\concat(' ', 'use', $option));
+
+                $this->assertEquals('Credentials updated', $result->exec());
+                $this->assertInternalType('string', $result->exec());
+            });
+    }
+
+    public function testDocCommandOutputsDocumentContents()
+    {
+        $this->forAll(
+            Generator\constant('dummy_database'),
+            Generator\elements('FishStew', 'LambStew'),
+            Generator\elements(
+                [
+                    "_id" => "FishStew",
+                    "servings" => 4,
+                    "subtitle" => "Delicious with freshly baked bread",
+                    "title" => "FishStew"
+                ],
+                [
+                    "_id" => "LambStew",
+                    "servings" => 6,
+                    "subtitle" => "Serve with a whole meal scone topping",
+                    "title" => "LambStew"
+                ]
+            )
+        )
+            ->then(function ($database, $docId, $result) {
+                $resp = \json_encode($result, \JSON_PRETTY_PRINT);
+                $res = $this->mockParser(A\concat(' ', 'doc', $database, $docId), $resp);
+
+                $this->assertInternalType('string', $res->exec());
+                $this->assertRegExp('/[\.\w\W]+$/', $res->exec());
+            });
+    }
+
+    public function testAllDocsCommandOutputsAllDatabaseDocuments()
+    {
+        $this->forAll(
+            Generator\constant('dummy_database'),
+            Generator\elements(
+                [
+                    "_id" => "FishStew",
+                    "_rev" => "1-6a466d5dfda05e613ba97bd737829d67",
+                    "servings" => 4,
+                    "subtitle" => "Delicious with freshly baked bread",
+                    "title" => "FishStew"
+                ],
+                [
+                    "_id" => "LambStew",
+                    "_rev" => "1-648f1b989d52b8e43f05aa877092cc7c",
+                    "servings" => 6,
+                    "subtitle" => "Serve with a whole meal scone topping",
+                    "title" => "LambStew"
+                ]
+            )
+        )
+            ->then(function ($database, $response) {
+                $resp = \json_encode($response);
+                $req = $this->mockParser(A\concat(' ', 'alldocs', $database), $resp);
+
+                $this->assertInstanceOf(IO::class, $req);
+                $this->assertRegExp('/[\.\w\W]+$/', $req->exec());
+            });
     }
 }

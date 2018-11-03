@@ -10,376 +10,237 @@
 
 namespace Chemem\Fauxton\Console;
 
-use \Chemem\Fauxton\Config\State;
-use \JakubOnderka\PhpConsoleColor\ConsoleColor;
-use \Chemem\Bingo\Functional\Functors\Monads\{IO, Reader};
+use Chemem\Fauxton\Http;
+use Chemem\Fauxton\Config\State;
+use JakubOnderka\PhpConsoleColor\ConsoleColor;
+use \Chemem\Bingo\Functional\Algorithms as A;
+use \Chemem\Bingo\Functional\Functors\Monads\IO;
+use \Chemem\Bingo\Functional\Functors\Monads as M;
 use function \Chemem\Bingo\Functional\PatternMatching\patternMatch;
-use function \Chemem\Fauxton\Http\{
-    uuids,
-    index, 
-    ddoc,
-    allDocs, 
-    getDoc, 
-    modify,
-    search, 
-    database,
-    allDatabases
-};
-use function \Chemem\Bingo\Functional\Algorithms\{
-    map,
-    omit,
-    filter, 
-    pluck, 
-    compose, 
-    concat, 
-    identity, 
-    extend, 
-    partialLeft, 
-    partialRight, 
-    curryRightN
-};
 
-/**
- * fetch :: Optional -> IO
- */
+const execCmd = 'Chemem\\Fauxton\\Console\\execCmd';
 
-const fetch = 'Chemem\\Fauxton\\Console\\fetch';
-
-function fetch() : IO
+function execCmd(string $cmd) : IO
 {
-    return printPrompt('prompt')
-        ->map(function (int $strlen) { return $strlen > 0 ? getLine() : identity('input error'); });
-}
+    return patternMatch(
+        [
+            '["cred", type, user, pass]' => function (string $type, string $user, string $pass) {
+                return configWrite(function (array $config) use ($user, $pass, $type) {
+                    $config['username'][$type] = $user;
+                    $config['password'][$type] = $pass;
+                    $res = A\compose(A\partialRight('json_encode', \JSON_PRETTY_PRINT), IO\IO);
+                    return $res($config);
+                });
+            },
+            '["use", option]' => function (string $option) {
+                return configWrite(function (array $config) use ($option) {
+                    $config['local'] = patternMatch(
+                        [
+                            '"local"' => function () {
+                                return true;
+                            },
+                            '_' => function () {
+                                return false;
+                            }
+                        ],
+                        $option
+                    );
+                    $res = A\compose(A\partialRight('json_encode', \JSON_PRETTY_PRINT), IO\IO);
+                    return $res($config);
+                });
+            },
+            '["gzip", database, file]' => function (string $database, string $file) {
+                $zip = M\mcompose(function (string $contents) use ($file) {
+                    $check = function (array $data) : array {
+                        return isset($data['rows']) ? A\pluck($data, 'rows') : A\identity([]);
+                    };
+                    $final = A\compose(A\partialRight('json_decode', true), $check, 'json_encode');
+                    $resource = \gzopen($file, 'w9');
+                    \gzwrite($resource, $final($contents));
+                    return IO\IO(\gzclose($resource) ? color('Success', 'green') : color('Failure', 'red'));
+                }, A\partialRight(Http\allDocs, ['include_docs' => 'true']));
 
-/**
- * parse :: IO -> IO
- */
-
-const parse = 'Chemem\\Fauxton\\Console\\parse';
-
-function parse(IO $parsable) : IO
-{
-    return $parsable
-        ->map(
-            function (string $input) {
-                $read = compose(
-                    partialLeft(\Chemem\Bingo\Functional\Algorithms\concat, '/', dirname(__DIR__, 2)),
-                    \Chemem\Fauxton\FileSystem\fileInit,
-                    \Chemem\Fauxton\FileSystem\read
+                return $zip(IO\IO($database));
+            },
+            '["unzip", file]' => function (string $file) {
+                $read = A\compose(
+                    'gzfile', 
+                    A\partialRight(A\pluck, 0),  
+                    A\partialRight('json_decode', true),
+                    A\partialRight('json_encode', \JSON_PRETTY_PRINT),
+                    formatOutput
                 );
+                return $read($file);
+            },
+            '["search", database, selector]' => function (string $database, string $selector) {
+                return configRead(function ($contents) use ($selector, $database) {
+                    $res = A\compose(
+                        A\partialRight('json_decode', true),
+                        A\partialRight(A\pluck, 'console'),
+                        A\partialRight(A\pluck, 'search'),
+                        A\partialLeft(A\extend, ['selector' => \json_decode($selector, true)]),
+                        A\partial(Http\search, $database)
+                    );
 
-                return patternMatch(
-                    [
-                        '["local", user, pwd]' => function (string $user, string $pwd) use ($read) {
-                            return $read(State::CLIENT_CONFIG_FILE)
-                                ->map(
-                                    function (array $config) use ($user, $pwd) {
-                                        return [
-                                            'username' => ['local' => $user, 'cloudant' => $config['username']['cloudant']],
-                                            'password' => ['local' => $pwd, 'cloudant' => $config['password']['cloudant']],
-                                            'local' => true
-                                        ];
-                                    }
-                                )
-                                ->flatMap(
-                                    function (array $config) {
-                                        $write = compose(
-                                            partialLeft(\Chemem\Bingo\Functional\Algorithms\concat, '/', dirname(__DIR__, 2)),
-                                            \Chemem\Fauxton\FileSystem\fileInit,
-                                            curryRightN(2, \Chemem\Fauxton\FileSystem\write)($config)
-                                        );
+                    return M\bind(function (string $docs) {
+                        $res = A\compose(
+                            A\partialRight('json_decode', true), 
+                            A\partialRight(A\pluck, 'docs'), 
+                            A\partialRight('json_encode', \JSON_PRETTY_PRINT),
+                            formatOutput
+                        );
+                        return $res($docs);
+                    }, $res($contents));
+                });
+            },
+            '["alldocs", database]' => function (string $database) {
+                return configRead(function (string $contents) use ($database) {
+                    $res = A\compose(
+                        A\partialRight('json_decode', true),
+                        A\partialRight(A\pluck, 'console'),
+                        A\partialRight(A\pluck, 'alldocs')
+                    );
 
-                                        return $write(State::CLIENT_CONFIG_FILE)
-                                            ->flatMap(function (bool $res) { return $res ? 'Configuration updated' : 'Configuration not updated'; });
-                                    }
-                                );
-                        },
-                        '["cloudant", user, pwd]' => function (string $user, string $pwd) use ($read) {
-                            return $read(State::CLIENT_CONFIG_FILE)
-                                ->map(
-                                    function (array $config) use ($user, $pwd) {
-                                        return [
-                                            'username' => ['cloudant' => $user, 'local' => $config['username']['local']],
-                                            'password' => ['cloudant' => $pwd, 'local' => $config['password']['local']],
-                                            'local' => false
-                                        ];
-                                    }
-                                )
-                                ->flatMap(
-                                    function (array $config) {
-                                        $write = compose(
-                                            partialLeft(\Chemem\Bingo\Functional\Algorithms\concat, '/', dirname(__DIR__, 2)),
-                                            \Chemem\Fauxton\FileSystem\fileInit,
-                                            curryRightN(2, \Chemem\Fauxton\FileSystem\write)($config)
-                                        );
-
-                                        return $write(State::CLIENT_CONFIG_FILE)
-                                            ->flatMap(function (bool $res) { return $res ? 'Configuration updated' : 'Configuration not updated'; });
-                                    }
-                                );
-                        },
-                        '["use", option]' => function (string $option) use ($read) {
-                            return patternMatch(
-                                [
-                                    '"local"' => function () use ($read) {
-                                        return $read(State::CLIENT_CONFIG_FILE)
-                                            ->map(partialRight(\Chemem\Bingo\Functional\Algorithms\extend, ['local' => true]));
-                                    },
-                                    '"cloudant"' => function () use ($read) {
-                                        return $read(State::CLIENT_CONFIG_FILE)
-                                            ->map(partialRight(\Chemem\Bingo\Functional\Algorithms\extend, ['local' => false]));
-                                    },
-                                    '_' => function () use ($read) { return $read(State::CLIENT_CONFIG_FILE); }
-                                ],
-                                $option
-                            )
-                                ->flatMap(
-                                    function (array $config) {
-                                        $write = compose(
-                                            partialLeft(\Chemem\Bingo\Functional\Algorithms\concat, '/', dirname(__DIR__, 2)),
-                                            \Chemem\Fauxton\FileSystem\fileInit,
-                                            curryRightN(2, \Chemem\Fauxton\FileSystem\write)($config)
-                                        );
-
-                                        return $write(State::CLIENT_CONFIG_FILE)
-                                            ->flatMap(function (bool $res) { return $res ? 'Configuration updated' : 'Configuration not updated'; });
-                                    }
-                                );
-                        },
-                        '["new", item]' => function (string $item) {                            
-                            return patternMatch(
-                                [
-                                    '"index"' => function () { 
-                                        return printPrompt('db')
-                                            ->map(function (int $len, array $query = []) { return extend($query, ['db' => $len > 0 ? getLine() : identity('')]); })
-                                            ->map(
-                                                function (array $query) {
-                                                    $action = compose(
-                                                        partialRight(\Chemem\Bingo\Functional\Algorithms\pluck, 'index'),
-                                                        partialLeft('printf', '%s'),
-                                                        function (int $len) use ($query) { return extend(['name' => $len > 0 ? getLine() : identity('')], $query); }
-                                                    );
-                                                    return $action(State::CONSOLE_FEATURES);
-                                                }
-                                            )
-                                            ->flatMap(
-                                                function (array $query) {
-                                                    $action = compose(
-                                                        partialRight(\Chemem\Bingo\Functional\Algorithms\pluck, 'dbFields'),
-                                                        partialLeft('printf', '%s'),
-                                                        function (int $len) use ($query) {
-                                                            $query['index']['fields'] = $len > 0 ? getListFromLine() : identity([]);
-                                                            return index('create', pluck($query, 'db'), omit($query, 'db'));
-                                                        }
-                                                    );
-                                                    return $action(State::CONSOLE_FEATURES);
-                                                }
-                                            ); 
-                                    },
-                                    '"view"' => function () {
-                                        return printPrompt('view')
-                                            ->map(function (int $len, array $query = []) { return extend($query, ['name' => ($len > 0 ? getLine() : identity(''))]); })
-                                            ->map(
-                                                function (array $query) {
-                                                    $action = compose(
-                                                        partialRight(\Chemem\Bingo\Functional\Algorithms\pluck, 'db'),
-                                                        partialLeft('printf', '%s'),
-                                                        function (int $len) use ($query) { return extend(['db' => $len > 0 ? getLine() : identity('')], $query); }
-                                                    );
-                                                    return $action(State::CONSOLE_FEATURES);
-                                                }
-                                            )
-                                            ->map(
-                                                function (array $query) {
-                                                    $action = compose(
-                                                        partialRight(\Chemem\Bingo\Functional\Algorithms\pluck, 'ddoc'),
-                                                        partialLeft('printf', '%s'),
-                                                        function (int $len) use ($query) { return extend(['ddoc' => $len > 0 ? getLine() : identity('')], $query); }
-                                                    );
-                                                    return $action(State::CONSOLE_FEATURES);
-                                                }
-                                            )
-                                            ->map(
-                                                function (array $query) {
-                                                    $action = compose(
-                                                        partialRight(\Chemem\Bingo\Functional\Algorithms\pluck, 'map'),
-                                                        partialLeft('printf', '%s'),
-                                                        function (int $len) use ($query) { return extend(['map' => $len > 0 ? getLine() : identity('')], $query); }
-                                                    );
-                                                    return $action(State::CONSOLE_FEATURES);
-                                                }
-                                            )                                            
-                                            ->map(
-                                                function (array $query) {
-                                                    $action = compose(
-                                                        partialRight(\Chemem\Bingo\Functional\Algorithms\pluck, 'reduce'),
-                                                        partialLeft('printf', '%s'),
-                                                        function (int $len) use ($query) { return extend(['reduce' => $len > 0 ? getLine() : identity('')], $query); }
-                                                    );
-                                                    return $action(State::CONSOLE_FEATURES);
-                                                }
-                                            )
-                                            ->map(
-                                                function (array $query) {
-                                                    $action = compose(
-                                                        partialRight(\Chemem\Bingo\Functional\Algorithms\pluck, 'rereduce'),
-                                                        partialLeft('printf', '%s'),
-                                                        function (int $len) use ($query) { return extend(['rereduce' => $len > 0 ? getLine() : identity('')], $query); }
-                                                    );
-                                                    return $action(State::CONSOLE_FEATURES);
-                                                }
-                                            )
-                                            ->flatMap(
-                                                function (array $query) {
-                                                    $submit = extend(
-                                                        [
-                                                            'views' => [
-                                                                pluck($query, 'name') => filter(function ($val) { return !empty($val); }, omit($query, 'db', 'name', 'ddoc'))
-                                                            ]
-                                                        ], 
-                                                        ['ddoc' => pluck($query, 'ddoc')]
-                                                    );
-                                                    
-                                                    return ddoc('create_view', pluck($query, 'db'), $submit);
-                                                }
-                                            );
-                                    },
-                                    '"db"' => function () { 
-                                        return printPrompt('db')
-                                            ->flatMap(function (int $len) { return $len > 0 ? database('create', getLine()) : identity('Could not create db'); }); 
-                                    },
-                                    '_' => function () { return 'Could not create item'; } 
-                                ],
-                                $item
-                            );
-                        },
-                        '["docs", database]' => function (string $database) { return allDocs($database, ['include_docs' => 'true']); },
-                        '["doc", database, docId]' => function (string $database, string $docId) { return getDoc($database, $docId); },
-                        '["search", database]' => function (string $database) {
-                            return printPrompt('search')
-                                ->map(function (int $len, array $query = []) { return extend($query, ['selector' => $len > 0 ? json_decode(getLine(), true) : identity('')]); })
-                                ->flatMap(
-                                    function (array $query) {
-                                        $fields = compose(
-                                            partialRight(\Chemem\Bingo\Functional\Algorithms\pluck, 'dbFields'),
-                                            partialLeft('printf', '%s'),
-                                            function (int $len) use ($query) { return extend($query, ['fields' => $len > 0 ? getListFromLine() : identity([])]); }
-                                        );
-                                        return $fields(State::CONSOLE_FEATURES);
-                                    }
-                                );
-                        },
-                        '["uuids", count]' => function (string $count) { return uuids((is_numeric($count) ? (int) $count : 1)); },
-                        '["input", "error"]' => function () { return 'Console error'; },
-                        '["config"]' => function () use ($read) { return $read(State::CLIENT_CONFIG_FILE)->exec(); },
-                        '["help"]' => function () { 
-                            return concat(
-                                \PHP_EOL, 
-                                'Available commands',
-                                implode(\PHP_EOL, 
-                                    array_map(
-                                        function ($cmd, $block) { return concat(': ', $cmd, pluck($block, 'desc')); }, 
-                                        array_keys(State::CONSOLE_COMMANDS), 
-                                        array_values(State::CONSOLE_COMMANDS)
-                                    )
-                                ) 
-                            ); 
-                        },
-                        '["explain", cmd]' => function (string $cmd) {
-                            return key_exists($cmd, State::CONSOLE_COMMANDS) ?
-                                implode(
-                                    \PHP_EOL, 
-                                    map(function (string $command) { return concat('- ', '', $command); }, pluck(State::CONSOLE_COMMANDS, $cmd))
-                                ) :
-                                concat(' ', 'Command', $cmd, 'is not supported');
-                        },
-                        '["dbs"]' => function () { return allDatabases(); },
-                        '["exit"]' => function () { return color('Exit', 'red'); },
-                        '_' => function () { return color('Invalid input', 'red'); }
-                    ],
-                    explode(' ', $input)
+                    return M\bind(function ($contents) {
+                        $res = A\compose(
+                            A\partialRight('json_decode', true), 
+                            A\partialRight('json_encode', \JSON_PRETTY_PRINT),
+                            formatOutput
+                        );
+                        return $res($contents);
+                    }, Http\allDocs($database, $res($contents)));
+                });
+            },
+            '["db", database]' => function (string $database) {
+                return outputAction(Http\database('get', $database));
+            },
+            '["uuids", count]' => function (string $count) {
+                return outputAction(Http\uuids(is_numeric($count) ? (int) $count : 1));
+            },
+            '["doc", database, docId]' => function (string $database, string $docId) {
+                return outputAction(Http\doc($database, $docId, ['include_docs' => 'true']));
+            },
+            '["explain", cmd]' => function (string $cmd) {
+                $res = A\compose(
+                    A\partialRight(A\pluck, $cmd),
+                    A\identity('array_values'),
+                    A\partialRight('json_encode', \JSON_PRETTY_PRINT),
+                    formatOutput
                 );
+                return \key_exists($cmd, State::CONSOLE_COMMANDS) ? 
+                    $res(State::CONSOLE_COMMANDS) :
+                    IO\IO(color(A\concat(' ', $cmd, 'not supported'), 'yellow'));
+            },
+            '["alldbs"]' => function () {
+                return outputAction(Http\allDbs());
+            },
+            '["help"]' => function () {
+                $res = A\compose(function (array $cmd) {
+                    $out = \array_map(function ($key, $val) {
+                        return A\concat(': ', $key, A\pluck($val, 'desc')); 
+                    }, \array_keys($cmd), \array_values($cmd));
+                    return \json_encode($out, \JSON_PRETTY_PRINT);
+                }, formatOutput);
+
+                return $res(State::CONSOLE_COMMANDS);
+            },
+            '["config"]' => function () {
+                return configRead(function ($contents) {
+                    return formatOutput($contents);
+                });
+            },
+            '["exit"]' => function () {
+                M\bind(function (string $msg) {
+                    $result = A\compose(A\partial('printf', '%s'), IO\IO);
+                    return $result($msg);
+                }, IO\IO('Thanks for using the console'));
+                exit();
+            },
+            '_' => function () {
+                $output = A\compose(A\partialRight(color, 'red'), IO\IO);
+                return $output('Input not recognized');
             }
-        ); //convert input to output
+        ],
+        explode(' ', $cmd)
+    );
 }
 
-/**
- * convey :: IO -> IO
- */
-
-const convey = 'Chemem\\Fauxton\\Console\\convey';
-
-function convey(IO $parsed) : IO
+function configRead(callable $action) : IO
 {
-    return $parsed
-        ->map(
-            function ($output) {
-                $print = $output instanceof \Chemem\Bingo\Functional\Immutable\Collection ||
-                    is_array($output) ?
-                        json_encode($output, JSON_PRETTY_PRINT) :
-                        (string) $output;
-
-                return concat(\PHP_EOL, $print, identity(''));
-            }
-        );
+    $read = M\mcompose($action, IO\readFile);
+    return $read(IO\IO(Http\path(State::CLIENT_CONFIG_FILE)));
 }
 
-/**
- * color :: String text -> String color -> String text
- */
+function configWrite(callable $action) : IO
+{
+    return configRead(function (string $contents) use ($action) {
+        $result = M\mcompose(A\partial(IO\writeFile, Http\path(State::CLIENT_CONFIG_FILE)), $action);
+        return M\bind(function (int $result) {
+            return IO\IO(
+                $result > 0 ? 
+                    color('Credentials updated', 'green') : 
+                    color('Credentials not updated', 'red')
+            );
+        }, $result(IO\IO(json_decode($contents, true))));
+    }); 
+}
+
+function replPrompt() : IO
+{
+    $prompt = M\mcompose(
+        function ($prompt) {
+            $action = A\compose(A\partial('printf', '%s'), IO\IO);
+            return $action($prompt);
+        }, 
+        function (array $contents) {
+            $result = A\compose(A\partialRight(A\pluck, 'prompt'), IO\IO);
+            return $result($contents);
+        }    
+    );
+
+    return $prompt(IO\IO(State::CONSOLE_FEATURES));
+}
+
+const formatOutput = 'Chemem\\Fauxton\\Console\\formatOutput';
+
+function formatOutput(string $contents) : IO
+{
+    $format = A\compose(
+        A\partial('str_replace', '{', \implode('.', \array_fill(0, 3, '.'))),
+        A\partial('str_replace', '}', \implode('.', \array_fill(0, 3, '.'))),
+        A\partial('str_replace', '[', \implode('.', \array_fill(0, 3, '.'))),
+        A\partial('str_replace', ']', \implode('.', \array_fill(0, 3, '.'))),
+        A\partial('str_replace', '\\t', ' '),
+        A\partial('str_replace', '"', ''),
+        A\partial('str_replace', ',', ''),
+        A\partial('str_replace', '\\', ''),
+        IO\IO
+    );
+
+    return $format($contents);
+}
 
 const color = 'Chemem\\Fauxton\\Console\\color';
 
-function color(string $text, string $color) : string
+function color(string $text, string $style = 'none')
 {
     $color = new ConsoleColor;
-    return $color->isSupported() ? $color->apply($color, $text) : identity($text);
+
+    return in_array($style, $color->getPossibleStyles()) && $color->isSupported() ?
+        $color->apply($style, $text) :
+        A\identity($text);
 }
 
-/**
- * getLine :: Optional -> String line
- */
+const outputAction = 'Chemem\\Fauxton\\Console\\outputAction';
 
-const getLine = 'Chemem\\Fauxton\\Console\\getLine';
-
-function getLine() : string
+function outputAction(IO $action) : IO
 {
-    $line = compose('fgets', 'trim');
-    return $line(\STDIN);
-}
-
-/**
- * getListFromLine :: Optional -> Array list
- */
-
-const getListFromLine = 'Chemem\\Fauxton\\Console\\getListFromLine';
-
-function getListFromLine() : array
-{
-    $list = compose(
-        getLine,
-        function ($content) { 
-            $explode = partialRight('explode', $content);
-            return $explode(preg_match('/\s+/', $content) ? ', ' : ',');
-        } 
-    );
-
-    return $list(\STDIN);
-}
-
-/**
- * printPrompt :: String key -> IO
- */
-
-const printPrompt = 'Chemem\\Fauxton\\Console\\printPrompt';
-
-function printPrompt(string $key) : IO
-{
-    $prompt = compose(
-        partialRight(\Chemem\Bingo\Functional\Algorithms\pluck, $key),
-        partialLeft('printf', '%s')
-    );
-
-    return IO::of(function () use ($prompt) { return function (array $opts) use ($prompt) { return $prompt($opts); }; })
-        ->ap(IO::of(State::CONSOLE_FEATURES));
+    return M\bind(function ($contents) {
+        $res = A\compose(
+            A\partialRight('json_decode', true),
+            A\partialRight('json_encode', \JSON_PRETTY_PRINT),
+            formatOutput
+        );
+        return $res($contents);
+    }, $action);
 }

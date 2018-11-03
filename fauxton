@@ -27,37 +27,54 @@ if (!defined('AUTOLOAD_PHP_FILE')) {
 
 require AUTOLOAD_PHP_FILE;
 
-use function \Chemem\Bingo\Functional\Algorithms\{compose, concat, identity, partialLeft, partialRight};
+use Chemem\Fauxton\Console;
+use Chemem\Fauxton\Config\State;
+use \Chemem\Bingo\Functional\Algorithms as A;
+use \Chemem\Bingo\Functional\Functors\Monads as M;
+use \Chemem\Bingo\Functional\Functors\Monads\IO;
 
-$print = partialRight('json_encode', \JSON_PRETTY_PRINT);
-
-set_error_handler(function ($errNo, $errStr) use ($print) { echo $print(['code' => $errNo, 'message' => $errStr]); });
-
-set_exception_handler(
-    function ($exception) use ($print) { 
-        echo $print([
-            'error' => $exception->getCode(),
-            'message' => $exception->getMessage()
-        ]);
-        
-        return false;
-    }
-);
-
-echo concat(\PHP_EOL, 'Fauxton Console', 'Built by Lochemem Bruno Michael', identity(''));
-
-function main()
+function errorHandler(string $msg, bool $type = false) : bool
 {
-    $repl = compose(
-        \Chemem\Fauxton\Console\fetch,
-        \Chemem\Fauxton\Console\parse,
-        \Chemem\Fauxton\Console\convey
+    $err = M\bind(function ($msg) use ($type) {
+        $handler = A\compose(
+            A\partial(A\concat, ' ', $type ? 'Exception' : 'Error:'),
+            A\partialRight(Console\color, $type ? 'red' : 'yellow'), 
+            A\partial('printf', '%s'), 
+            function ($content) : bool {
+                return $content > 0 ? true : false;
+            },
+            IO\IO
+        );
+        return $handler($msg);
+    }, IO\IO($msg));
+
+    return $err->exec();
+}
+
+set_exception_handler(function ($exception) {
+    return errorHandler($exception->getMessage(), true);
+});
+
+set_error_handler(function ($errno, $errstr) {
+    return errorHandler($errstr);
+});
+
+function main() : IO
+{
+    $result = A\compose(
+        A\constantFunction(Console\replPrompt()),
+        A\constantFunction(M\mcompose(function ($fgets) {
+            $repl = A\compose($fgets, Console\execCmd, IO\IO);
+            return $repl(\STDIN);
+        }, IO\putStr)(IO\IO(null)))
     );
 
-    return $repl(null)
-        ->flatMap(partialLeft('printf', '%s'));
+    return $result(null)->exec();
 }
 
-while (true) {
-    if (main() == 6) break;
-}
+M\bind(function (string $msg) {
+    $result = A\compose(A\partial('printf', '%s'), IO\IO);
+    return $result($msg);
+}, IO\IO(A\concat(\PHP_EOL, 'Fauxton Console', 'Built By Lochemem Bruno Michael', '')));
+
+while (true) IO\_print(main());
