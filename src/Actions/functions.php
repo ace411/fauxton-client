@@ -16,6 +16,7 @@ use \Chemem\Bingo\Functional\Algorithms as A;
 use \Chemem\Bingo\Functional\Immutable\Collection;
 use \Chemem\Bingo\Functional\Functors\Monads as M;
 use \Chemem\Bingo\Functional\Functors\Monads\IO;
+use \Chemem\Bingo\Functional\PatternMatching as PM;
 
 const uuids = 'Chemem\\Fauxton\\Actions\\uuids';
 function uuids(int $count) : IO
