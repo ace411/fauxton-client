@@ -1,6 +1,14 @@
 #!/usr/bin/env php
 <?php
 
+/**
+ * 
+ * fauxton-client console file
+ * 
+ * @author Lochemem Bruno Michael
+ * @license Apache-2.0
+ */
+
 foreach (
     [
         __DIR__ . '/../autoload.php',
