@@ -1,5 +1,13 @@
 <?php
 
+/**
+ * 
+ * fauxton-client immutable data
+ * 
+ * @author Lochemem Bruno Michael
+ * @license Apache-2.0
+ */
+
 namespace Chemem\Fauxton\Config;
 
 class State 
@@ -13,6 +21,13 @@ class State
     const COUCH_REQHEADERS = [
         'Content-Type: application/json',
         'Accept: application/json'
+    ];
+
+    const CONFIG_PATHS = [
+        __DIR__ . '/../../fauxton.json',
+        __DIR__ . '/../../../fauxton.json',
+        __DIR__ . '/../../../../fauxton.json',
+        __DIR__ . '/../../../../../fauxton.json'
     ];
 
     const COUCH_ACTIONS = [
