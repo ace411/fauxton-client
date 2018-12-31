@@ -1,5 +1,13 @@
 <?php
 
+/**
+ * 
+ * fauxton-client console functions
+ * 
+ * @author Lochemem Bruno Michael
+ * @license Apache-2.0
+ */
+
 namespace Chemem\Fauxton\Console;
 
 use Chemem\Fauxton\{Http, Actions};
