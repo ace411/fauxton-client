@@ -16,14 +16,15 @@
     "require": {
         "php": ">=7.0",
         "chemem/bingo-functional": "~1",
-        "composer/ca-bundle": "~1"  
+        "chemem/bingo-functional-http": "dev-master"  
     },
     "autoload": {
         "psr-4": {
             "Chemem\\Fauxton\\": "src/"
         },
         "files": [
-            "src/Http/Http.php"
+            "src/Http/functions.php",
+            "src/Actions/functions.php"
         ]
     },
     "autoload-dev": {
@@ -35,5 +36,10 @@
         "branch-alias": {
             "dev-master": "1.0-dev"
         }
+    },
+    "scripts": {
+        "fauxton-init": [
+            "@php -r 'copy(\"fauxton.json\", \"fauxton.json\");'"
+        ]
     }
 }

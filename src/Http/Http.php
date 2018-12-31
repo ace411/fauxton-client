@@ -193,12 +193,18 @@ function insert(string $opt, string $database, array $data) : IO
         ]);
         return $result(patternMatch(
             [
-                '"single"' => function () use ($key, $database) : array {
-                    return [
-                        'insertSingle' => A\extend($key, [
-                            '{docId}' => isset($data['id']) ? A\pluck($data, 'id') : A\head(uuids(1)->exec())
-                        ])                             
-                    ];
+                '"single"' => function () use ($key, $data, $database) : array {
+                    $uuids = M\bind(function ($json) {
+                        $ret = A\compose(
+                            A\partialRight('json_decode', true), 
+                            A\partialRight(A\pluck, 0), 
+                            IO\IO
+                        );
+                        return $ret($json);
+                    }, uuids(1));
+                    return !isset($data['_id']) ? ['{dbgen}' => []] : A\extend($key, [
+                        '{docId}' => $uuids->exec()
+                    ]);
                 },
                 '"multiple"' => function () use ($key) : array {
                     return ['bulkDocs' => $key];
