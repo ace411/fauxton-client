@@ -42,7 +42,7 @@
         }
     },
     "scripts": {
-        "fauxton-init": [
+        "post-install-cmd": [
             "@php -r 'copy(\"fauxton.json\", \"fauxton.json\");'"
         ]
     }
