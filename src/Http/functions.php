@@ -92,16 +92,22 @@ function _authHeaders(bool $local, string $user, string $pass) : array
     return !$local ? array() : array(A\concat(' ', 'Authorization:', 'Basic', $encode($pass)));
 }
 
-const _readConfig = 'Chemem\\Fauxton\\Http\\_readConfig';
-function _readConfig() : IO
+const _configPath = 'Chemem\\Fauxton\\Http\\_configPath';
+function _configPath() : string
 {
     $def = A\head(State::CONFIG_PATHS);
     $file = A\filter(function (string $file) use ($def) : bool {
         $strlen = A\partialRight('mb_strlen', 'utf-8');
         return is_file($file) && $strlen($file) > mb_strlen($def);
     }, State::CONFIG_PATHS);
-    
-    return IO\readFile(!empty($file) ? A\head($file) : $def);
+
+    return !empty($file) ? A\head($file) : $def;
+}
+
+const _readConfig = 'Chemem\\Fauxton\\Http\\_readConfig';
+function _readConfig() : IO
+{
+    return IO\readFile(_configPath());
 }
 
 const _exec = 'Chemem\\Fauxton\\Http\\_exec';
