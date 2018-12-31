@@ -2,7 +2,7 @@
 
 namespace Chemem\Fauxton\Console;
 
-use Chemem\Fauxton\Http;
+use Chemem\Fauxton\{Http, Actions};
 use Chemem\Fauxton\Config\State;
 use JakubOnderka\PhpConsoleColor\ConsoleColor;
 use \Chemem\Bingo\Functional\Algorithms as A;
@@ -50,7 +50,7 @@ function execCmd(string $cmd) : IO
                     $resource = \gzopen($file, 'w9');
                     \gzwrite($resource, $final($contents));
                     return IO\IO(\gzclose($resource) ? color('Success', 'green') : color('Failure', 'red'));
-                }, A\partialRight(Http\allDocs, ['include_docs' => 'true']));
+                }, A\partialRight(Actions\allDocs, ['include_docs' => 'true']));
 
                 return $zip(IO\IO($database));
             },
@@ -71,7 +71,7 @@ function execCmd(string $cmd) : IO
                         A\partialRight(A\pluck, 'console'),
                         A\partialRight(A\pluck, 'search'),
                         A\partialLeft(A\extend, ['selector' => \json_decode($selector, true)]),
-                        A\partial(Http\search, $database)
+                        A\partial(Actions\search, $database)
                     );
 
                     return M\bind(function (string $docs) {
@@ -100,17 +100,17 @@ function execCmd(string $cmd) : IO
                             formatOutput
                         );
                         return $res($contents);
-                    }, Http\allDocs($database, $res($contents)));
+                    }, Actions\allDocs($database, $res($contents)));
                 });
             },
             '["db", database]' => function (string $database) {
-                return outputAction(Http\database('get', $database));
+                return outputAction(Actions\database($database));
             },
             '["uuids", count]' => function (string $count) {
-                return outputAction(Http\uuids(is_numeric($count) ? (int) $count : 1));
+                return outputAction(Actions\uuids(is_numeric($count) ? (int) $count : 1));
             },
             '["doc", database, docId]' => function (string $database, string $docId) {
-                return outputAction(Http\doc($database, $docId, ['include_docs' => 'true']));
+                return outputAction(Actions\doc($database, $docId, array('include_docs' => 'true')));
             },
             '["explain", cmd]' => function (string $cmd) {
                 $res = A\compose(
@@ -124,7 +124,7 @@ function execCmd(string $cmd) : IO
                     IO\IO(color(A\concat(' ', $cmd, 'not supported'), 'yellow'));
             },
             '["alldbs"]' => function () {
-                return outputAction(Http\allDbs());
+                return outputAction(Actions\allDbs());
             },
             '["help"]' => function () {
                 $res = A\compose(function (array $cmd) {
@@ -159,14 +159,13 @@ function execCmd(string $cmd) : IO
 
 function configRead(callable $action) : IO
 {
-    $read = M\mcompose($action, IO\readFile);
-    return $read(IO\IO(Http\path(State::CLIENT_CONFIG_FILE)));
+    return M\bind($action, Http\_readConfig());
 }
 
 function configWrite(callable $action) : IO
 {
     return configRead(function (string $contents) use ($action) {
-        $result = M\mcompose(A\partial(IO\writeFile, Http\path(State::CLIENT_CONFIG_FILE)), $action);
+        $result = M\mcompose(A\partial(IO\writeFile, Http\_configPath()), $action);
         return M\bind(function (int $result) {
             return IO\IO(
                 $result > 0 ? 
@@ -174,7 +173,7 @@ function configWrite(callable $action) : IO
                     color('Credentials not updated', 'red')
             );
         }, $result(IO\IO(json_decode($contents, true))));
-    }); 
+    });
 }
 
 function replPrompt() : IO
