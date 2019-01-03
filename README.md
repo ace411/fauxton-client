@@ -3,8 +3,7 @@ A simple CouchDB interaction library.
 
 ## Requirements
 
-- curl
-- php 7.0+
+- PHP 7.0+
 
 ## Installation
 
@@ -14,7 +13,6 @@ command-line interface:
 ```
 composer require chemem/fauxton-client dev-master
 ```
-
 
 ## Fauxton
 
@@ -49,7 +47,7 @@ and therefore, prudent.
 In order to run the unit tests, run the following command:
 
 ```
-vendor/bin/phpunit -c phpunit.xml
+vendor/bin/phpunit -c phpunit.xml.dist
 ```
 
 ## Dealing with problems
