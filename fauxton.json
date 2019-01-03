@@ -1,0 +1,22 @@
+{
+    "username": {
+        "local": "",
+        "cloudant": ""
+    },
+    "password": {
+        "local": "",
+        "cloudant": ""
+    },
+    "console": {
+        "search": {
+            "limit": 25,
+            "skip": 0
+        },
+        "alldocs": {
+            "include_docs": "true",
+            "limit": 25,
+            "skip": 0
+        }
+    },
+    "local": true
+}

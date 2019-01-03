@@ -3,6 +3,7 @@
     "description": "A simple CouchDB interaction library.",
     "type": "library",
     "license": "MIT",
+    "minimum-stability": "dev",
     "authors": [
         {
             "name": "Lochemem Bruno Michael",
@@ -10,14 +11,41 @@
         }
     ],
     "require-dev": {
-        "phpunit/phpunit": "*"
+        "phpunit/phpunit": "~6.0",
+        "jfalque/http-mock": "~1",
+        "giorgiosironi/eris": "~0.10"
     },
     "require": {
-        "php": "^5.4 || ^7.0"  
+        "php": ">=7.0",
+        "chemem/bingo-functional": "~1",
+        "composer/ca-bundle": "~1",
+        "jakub-onderka/php-console-color": "~0.1",  
+        "chemem/bingo-functional-http": "dev-master"  
     },
     "autoload": {
         "psr-4": {
             "Chemem\\Fauxton\\": "src/"
+        },
+        "files": [
+            "src/Console/Console.php",
+            "src/Http/functions.php",
+            "src/Actions/functions.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Chemem\\Fauxton\\Tests\\": "tests"
         }
+    },
+    "bin": ["fauxton"],
+    "extra": {
+        "branch-alias": {
+            "dev-master": "1.0-dev"
+        }
+    },
+    "scripts": {
+        "post-install-cmd": [
+            "@php -r 'copy(\"fauxton.json\", \"fauxton.json\");'"
+        ]
     }
 }
