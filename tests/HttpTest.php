@@ -10,33 +10,48 @@ use \Chemem\Fauxton\Http;
 use \Chemem\Bingo\Functional\Functors\Monads\IO;
 use \Chemem\Bingo\Functional\Algorithms as A;
 use \Chemem\Bingo\Functional\Functors\Monads as M;
+use \Chemem\Bingo\Functional\PatternMatching as PM;
 
 class HttpTest extends \PHPUnit\Framework\TestCase
 {
     use \Eris\TestTrait;
 
-    public function mockHttpFetch($request, $response) : IO
-    {
-        //mock request and response
-        return Http\execute(function ($contents) use ($request, $response) {
-            //$credentials = Http\credentials($contents);
-            $mockHttp = function ($url) use ($response) : IO {
-                return M\bind(function ($server) use ($url, $response) {
-                    list($code, $method, $headers, $resp) = $response;
-                    $obj = $server
-                        ->whenUri($url)
-                        ->return (new Response($code, $headers, $resp)) //code, headers, json_response
-                        ->end();
+    const DECONSTRUCT = array('code', 'method', 'headers', 'body');
 
-                    $http = $obj->handle(new Request($method, $url))
+    const _genUrl = 'Chemem\\Fauxton\\Tests\\HttpTest::_genUrl';
+    public static function _genUrl(array $request) : IO
+    {
+        return M\bind(function (string $content) use ($request) {
+            $uri = A\compose(Http\_credentials, A\partialRight(Http\_url, $request), IO\IO);
+            return $uri($content);
+        }, Http\_readConfig());
+    }
+
+    const mockHttpFetch = 'Chemem\\Fauxton\\Tests\\HttpTest::mockHttpFetch';
+    public static function mockHttpFetch(array $request, array $response) : IO
+    {
+        return M\bind(function (string $url) use ($response) {
+            $let = PM\letIn(self::DECONSTRUCT, $response);
+            
+            return $let(self::DECONSTRUCT, function ($code, $method, $headers, $body) use ($url) : IO {
+                $http = (new Server)
+                    ->whenUri($url)
+                    ->return (new Response($code, $headers, $body))
+                    ->end();
+
+                return IO\IO(
+                    $http->handle(new Request($method, $url))
                         ->getBody()
-                        ->getContents();
-                    return IO\IO($http);
-                }, IO\IO(new Server));
-            };
-            $http = A\compose(A\partial(Http\urlGenerate, Http\credentials($contents)), $mockHttp);
-            return $http($request); //request = urlParams ['dbgen' => ['{db}' => 'dbname']]
-        });
+                        ->getContents()
+                );
+            });
+        }, self::_genUrl($request));
+    }
+
+    const _strlen = 'Chemem\\Fauxton\\Tests\\HttpTest::_strlen';
+    public static function _strlen(string $string) : bool
+    {
+        return strlen($string) > 5;
     }
 
     public function testUuidsFunctionOutputsUniqueIdentifiers()
@@ -75,69 +90,55 @@ class HttpTest extends \PHPUnit\Framework\TestCase
 
     public function testCredentialsFunctionExtractsCouchDbAuthCredentials()
     {
-        $this->forAll(Generator\constant(Http\path(State::CLIENT_CONFIG_FILE)))
-            ->then(function ($path) {
-                $cred = M\mcompose(function ($contents) {
-                    $res = A\compose(Http\credentials, IO\IO);
-                    return $res($contents);
-                }, IO\readFile);
+        $this->forAll(Generator\constant(Http\_readConfig))
+            ->then(function (callable $path) {
+                $credentials = M\bind(function (string $config) {
+                    return IO\IO(Http\_credentials($config));
+                }, $path())->exec();
 
-                $credentials = $cred(IO\IO($path));
-
-                $this->assertInternalType('array', $credentials->exec());
-                $this->assertTrue(count($credentials->exec()) == 3);
+                $this->assertInternalType('array', $credentials);
+                $this->assertTrue(count($credentials) == 3);
             });
     }
 
-    public function testUrlGenerateFunctionOutputsCouchDbAccessUrl()
+    public function testUrlFunctionOutputsCouchDbAccessUrl()
     {
         $this->forAll(
-            Generator\constant(Http\path(State::CLIENT_CONFIG_FILE)),
+            Generator\constant(Http\_readConfig),
             Generator\elements(
                 ['dbgen' => ['{db}' => 'dummy_data']],
                 ['uuids' => ['{count}' => 12]]
             )
         )
-            ->then(function ($path, $params) {
-                $urlGen = M\mcompose(function ($contents) use ($params) {
-                    $res = A\compose(Http\credentials, A\partialRight(Http\urlGenerate, $params), IO\IO);
-                    return $res($contents);
-                }, IO\readFile);
+            ->then(function (callable $path, array $params) {
+                $url = M\bind(function (string $config) use ($params) {
+                    $url = A\compose(Http\_credentials, A\partialRight(Http\_url, $params), IO\IO);
+                    return $url($config);
+                }, $path())->exec();
 
-                $url = $urlGen(IO\IO($path));
-
-                $this->assertInternalType('string', $url->exec());
-                $this->assertRegExp('/(http|https*)(:*)(\/{2})([\w\W\d]*)/', $url->exec());
+                $this->assertInternalType('string', $url);
+                $this->assertRegExp('/(http|https*)(:*)(\/{2})([\w\W\d]*)/', $url);
             });
     }
 
     public function testAuthHeadersOutputsHeadersForHttpRequest()
     {
         $this->forAll(
-            Generator\constant(Http\path(State::CLIENT_CONFIG_FILE)),
-            Generator\elements(
-                ['Content-Type: application/json'],
-                ['Accept: application/json']
-            )
+            Generator\associative([
+                'local' => Generator\bool(),
+                'user' => Generator\suchThat(self::_strlen, Generator\string()),
+                'pass' => Generator\suchThat(self::_strlen, Generator\string())
+            ])
         )
-            ->then(function ($path, $headers) {
-                $head = M\mcompose(function ($contents) use ($headers) {
-                    $res = A\compose(
-                        Http\credentials,
-                        A\partialRight('Chemem\\Fauxton\\Http\\authHeaders', $headers),
-                        IO\IO
-                    );
-                    return $res($contents);
-                }, IO\readFile);
+            ->then(function (array $credentials) {
+                $pluck = A\partial(A\pluck, $credentials);
 
-                $httpHeaders = $head(IO\IO($path));
+                $headers = Http\_authHeaders($pluck('local'), $pluck('user'), $pluck('pass'));
 
-                $this->assertInternalType('array', $httpHeaders->exec());
+                $this->assertInternalType('array', $headers);
             });
     }
 
-    //TODO: execute, precond, database, allDbs, 
-    //allDocs, insert, doc, search, changes, modify, ddoc
     public function testDatabaseFunctionManipulatesDatabase()
     {
         $this->forAll(
