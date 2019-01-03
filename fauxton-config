@@ -1,0 +1,74 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * 
+ * fauxton-config script
+ * 
+ * @author Lochemem Bruno Michael
+ * @license Apache-2.0
+ */
+
+foreach (
+    [
+        __DIR__ . '/../autoload.php',
+        __DIR__ . '/../../autoload.php',
+        __DIR__ . '/../vendor/autoload.php',
+        __DIR__ . '/vendor/autoload.php',
+        __DIR__ . '/../../vendor/autoload.php'
+    ] as $file
+) {
+    if (file_exists($file)) {
+        define('AUTOLOAD_PHP_FILE', $file);
+        break;
+    }    
+}
+
+if (!defined('AUTOLOAD_PHP_FILE')) {
+     fwrite(STDERR,
+        'You need to set up the project dependencies using the following commands:' . PHP_EOL .
+        'wget http://getcomposer.org/composer.phar' . PHP_EOL .
+        'php composer.phar install' . PHP_EOL
+    );
+    die(1);
+}
+
+require AUTOLOAD_PHP_FILE;
+
+use \Chemem\Bingo\Functional\Functors\Monads as M;
+use \Chemem\Bingo\Functional\Functors\Monads\IO;
+use \Chemem\Bingo\Functional\Algorithms as A;
+use \Chemem\Fauxton\Http;
+use \Chemem\Fauxton\Console;
+use \Chemem\Fauxton\Config\State;
+
+function _prettyPrint(string $content) : IO
+{
+    $pretty = A\compose(
+        A\partialRight('json_decode', true), 
+        A\partialRight('json_encode', JSON_PRETTY_PRINT),
+        IO\IO
+    );
+    return $pretty($content);
+}
+
+function _copy(string $from, string $to) : IO
+{
+    $copy = A\compose(A\partial('copy', $from), IO\IO);
+    return $copy($to);
+}
+
+function _copyFile(string $from) : IO
+{
+    return M\bind(function (bool $result) {
+        $ret = A\compose(IO\IO, IO\_print);
+        return $ret($result ? 'File created' : 'File not created'); 
+    }, _copy($from, State::CLIENT_CONFIG_FILE));
+}
+
+function main() : IO
+{
+    return _copyFile(Http\_configPath());
+}
+
+main();
