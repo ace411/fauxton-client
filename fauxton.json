@@ -18,5 +18,9 @@
             "skip": 0
         }
     },
-    "local": true
+    "local": true,
+    "https": {
+        "config": false,
+        "baseUri": "" 
+    }
 }
