@@ -19,6 +19,7 @@
         "php": ">=7.0",
         "chemem/bingo-functional": "~1",
         "composer/ca-bundle": "~1",
+        "dekor/php-array-table": "~1",
         "jakub-onderka/php-console-color": "~0.1",  
         "chemem/bingo-functional-http": "dev-master"  
     },
