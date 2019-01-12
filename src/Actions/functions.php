@@ -97,12 +97,13 @@ function _put(array $data) : callable
 
 const _IOException = 'Chemem\\Fauxton\\Actions\\_IOException';
 function _IOException(string $msg) : IO
-{
-    return IO\IO(function () use ($msg) {
-        return function () use ($msg) {
-            throw new \Exception($msg);
-        };
-    });
+{  
+    return function_exists(IO\IOException) ? IO\IOException($msg) : 
+        IO\IO(function () use ($msg) {
+            return function () use ($msg) {
+                throw new \Exception($msg);
+            };
+        });
 }
 
 const _insert = 'Chemem\\Fauxton\\Actions\\_insert';
@@ -206,6 +207,19 @@ function deleteDesignDoc(string $database, string $ddoc) : IO
             '{ddoc}' => $ddoc
         )
     ));
+}
+
+const docKeys = 'Chemem\\Fauxton\\Actions\\docKeys';
+function docKeys(string $database, array $keys, array $params = array()) : IO
+{
+    return !key_exists('keys', $keys) ?
+        _IOException('"keys" key is missing. Schema is {"keys":[keys]}') :
+        _post($keys)(array(
+            'allDocs' => array(
+                '{db}' => $database,
+                '{params}' => !isset($params) ? '' : http_build_query($params)
+            )
+        ));
 }
 
 const toCollection = 'Chemem\\Fauxton\\Actions\\toCollection';
