@@ -28,6 +28,7 @@
             "Chemem\\Fauxton\\": "src/"
         },
         "files": [
+            "src/Console/parser.php",
             "src/Console/Console.php",
             "src/Http/functions.php",
             "src/Actions/functions.php"
