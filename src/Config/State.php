@@ -81,61 +81,59 @@ class State
         ]
     ];
 
-    const CONSOLE_FEATURES = [
-        'prompt' => '>>> '
-    ];
+    const CONSOLE_PROMPT = '>>> ';
 
     const CONSOLE_COMMANDS = [
         'exit' => [
-            'doc' => 'exit',
+            'cmd' => 'exit',
             'desc' => 'Terminates the Fauxton console'
         ],
         'config' => [
-            'doc' => 'config',
+            'cmd' => 'config',
             'desc' => 'Shows the fauxton client configuration'
         ],
         'alldbs' => [
-            'doc' => 'alldbs',
+            'cmd' => 'alldbs',
             'desc' => 'Shows all available databases'
         ],
         'uuids' => [
-            'doc' => 'uuids <count> eg uuids 2',
+            'cmd' => 'uuids <count> eg uuids 2',
             'desc' => 'Outputs a specified number of unique ids'
         ],
         'cred' => [
-            'doc' => 'cred <type> <username> <password> eg cred local foo foobar',
+            'cmd' => 'cred <type> <username> <password> eg cred local foo foobar',
             'desc' => 'Sets CouchDB username and password'
         ],
         'gzip' => [
-            'doc' => 'gzip <database> <file> eg gzip meetups meetups.gz',
+            'cmd' => 'gzip <database> <file> eg gzip meetups meetups.gz',
             'desc' => 'gzips a database\'s contents'
         ],
         'unzip' => [
-            'doc' => 'unzip <file> eg unzip meetups.gz',
+            'cmd' => 'unzip <file> eg unzip meetups.gz',
             'desc' => 'unzips gzipped file'
         ],
         'use' => [
-            'doc' => 'use <option> eg use local',
+            'cmd' => 'use <option> eg use local',
             'desc' => 'Modifies local parameter in fauxton-client configuration'
         ],
         'alldocs' => [
-            'doc' => 'alldocs <database> eg docs nba_players',
+            'cmd' => 'alldocs <database> eg docs nba_players',
             'desc' => 'Outputs all the documents in a database'
         ],
-        'doc' => [
-            'doc' => 'doc <database> <docId> eg doc nba_players dwayne_wade',
+        'cmd' => [
+            'cmd' => 'doc <database> <docId> eg doc nba_players dwayne_wade',
             'desc' => 'Outputs a document\'s contents' 
         ],
         'search' => [
-            'doc' => 'search <database> <selector> eg search rap_artists {"name":{"$eq":"bronson"}}',
+            'cmd' => 'search <database> <selector> eg search rap_artists {"name":{"$eq":"bronson"}}',
             'desc' => 'Searches a database (Powered by Mango queries)'
         ],
         'explain' => [
-            'doc' => 'explain <command> eg explain alldocs',
+            'cmd' => 'explain <command> eg explain alldocs',
             'desc' => 'Provides a description of a command'
         ],
         'db' => [
-            'doc' => 'db <database> eg db action_movies',
+            'cmd' => 'db <database> eg db action_movies',
             'desc' => 'Shows database metadata'
         ]
     ];
