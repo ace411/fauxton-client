@@ -89,7 +89,7 @@ class State
             'desc' => 'Terminates the Fauxton console'
         ],
         'config' => [
-            'cmd' => 'config',
+            'cmd' => 'config <option> eg config credentials, config console',
             'desc' => 'Shows the fauxton client configuration'
         ],
         'alldbs' => [
