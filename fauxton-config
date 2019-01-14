@@ -62,7 +62,11 @@ function _copyFile(string $from) : IO
 {
     return M\bind(function (bool $result) {
         $ret = A\compose(IO\IO, IO\_print);
-        return $ret($result ? 'File created' : 'File not created'); 
+        return $ret(
+            $result ? 
+                Console\color('File created', 'green') : 
+                Console\color('File not created', 'red')
+        ); 
     }, _copy($from, State::CLIENT_CONFIG_FILE));
 }
 
