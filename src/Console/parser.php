@@ -225,6 +225,13 @@ function _multiple(callable $action) : IO
     }, M\bind($action, _cliOpts('alldocs')));
 }
 
+function _dbData(string $database) : IO
+{
+    return _output(function (array $data) {
+        return array(A\addKeys($data, 'doc_count', 'disk_size', 'data_size', 'compact_running', 'doc_del_count'));
+    }, Actions\database($database));
+}
+
 function _keyDocs(string $database, string $keys) : IO
 {
     return _multiple(A\partial(Actions\docKeys, $database, array('keys' => json_decode($keys, true))));
