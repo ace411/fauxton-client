@@ -46,9 +46,9 @@ function _header() : callable
 function _formatList(array $data) : string
 {
     $format = A\compose(
-        A\toPairs, 
-        A\partial(A\map, A\partial('implode', ': ')), 
-        A\partial('implode', ', ')
+        'json_encode',
+        A\partial('preg_replace', '/[{\}\[\]\"]+/', ''),
+        A\partial('str_replace', ',', ', ')
     );
 
     return $format($data);
@@ -220,7 +220,13 @@ function _singleDoc(string $database, string $docId) : IO
 function _multiple(callable $action) : IO
 {
     return _output(function (array $docs) {
-        $ret = A\compose(A\partialRight(A\pluck, 'rows'), A\partial(A\map, A\partialRight(A\pluck, 'doc')));
+        $ret = A\compose(
+            A\partialRight(A\pluck, 'rows'), 
+            A\partial(A\map, A\partialRight(A\pluck, 'doc')),
+            A\partial(A\filter, function (array $doc) : bool {
+                return !key_exists('views', $doc); 
+            })
+        );
         return $ret($docs);
     }, M\bind($action, _cliOpts('alldocs')));
 }
