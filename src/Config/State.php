@@ -90,7 +90,7 @@ class State
         ],
         'config' => [
             'cmd' => 'config <option> eg config credentials, config console',
-            'desc' => 'Shows the fauxton client configuration'
+            'desc' => 'Shows elements of the fauxton client configuration file'
         ],
         'alldbs' => [
             'cmd' => 'alldbs',
@@ -135,6 +135,10 @@ class State
         'db' => [
             'cmd' => 'db <database> eg db action_movies',
             'desc' => 'Shows database metadata'
+        ],
+        'docs' => [
+            'cmd' => 'docs <database> <keys> eg docs action_movies ["JohnWick","MissionImpossible"]',
+            'desc' => 'Outputs a set of documents identified by specified keys'
         ]
     ];
 }
