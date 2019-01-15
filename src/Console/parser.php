@@ -20,7 +20,7 @@ use \JakubOnderka\PhpConsoleColor\ConsoleColor;
 use \Chemem\Bingo\Functional\PatternMatching as PM;
 
 const _replPrompt = 'Chemem\\Fauxton\\Console\\_replPrompt';
-function _replPrompt()
+function _replPrompt() : IO
 {
     return M\bind(function (string $prompt) {
         $ret = A\compose(A\partial('printf', '%s'), IO\IO);
