@@ -57,10 +57,10 @@ function execCmd(string $cmd) : IO
                 return _multipleDocs($database);
             },
             '["db", database]' => function (string $database) {
-                return;                
+                return _dbData($database);                
             },
-            '["show", opt]' => function (string $opt) {
-                return _printConfig($opt);
+            '["config", cmd]' => function (string $cmd) {
+                return _printConfig($cmd);
             },
             '["uuids", count]' => function (string $count) {
                 return _uuids((int) $count);
@@ -79,9 +79,6 @@ function execCmd(string $cmd) : IO
             },
             '["help"]' => function () {
                 return _allCmds();
-            },
-            '["show", cmd]' => function (string $cmd) {
-                return _explain($cmd);
             },
             '["exit"]' => function () {
                 M\bind(function (string $msg) {
