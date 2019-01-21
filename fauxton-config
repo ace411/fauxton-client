@@ -35,44 +35,44 @@ if (!defined('AUTOLOAD_PHP_FILE')) {
 
 require AUTOLOAD_PHP_FILE;
 
-use \Chemem\Bingo\Functional\Functors\Monads as M;
-use \Chemem\Bingo\Functional\Functors\Monads\IO;
-use \Chemem\Bingo\Functional\Algorithms as A;
+use \React\Filesystem\Filesystem;
+use \React\Promise\Promise;
 use \Chemem\Fauxton\Http;
-use \Chemem\Fauxton\Console;
 use \Chemem\Fauxton\Config\State;
+use function \Chemem\Bingo\Functional\Functors\Monads\IO\_print;
+use function \Chemem\Bingo\Functional\Functors\Monads\IO\IO;
+use function \Chemem\Bingo\Functional\Algorithms\compose;
+use function \Chemem\Bingo\Functional\Algorithms\partialRight;
 
-function _prettyPrint(string $content) : IO
+function _create($loop) : Promise
 {
-    $pretty = A\compose(
-        A\partialRight('json_decode', true), 
-        A\partialRight('json_encode', JSON_PRETTY_PRINT),
-        IO\IO
+    return Filesystem::create($loop)->file(State::CLIENT_CONFIG_FILE)->open('cw');
+}
+
+function main($loop) : Promise
+{
+    $action = compose(
+        Http\_readConfig, 
+        partialRight(Http\_toPromise, function (string $result, callable $resolve) use ($loop) {
+            _create($loop)->then(function (\React\Stream\WritableStreamInterface $stream) use ($resolve, $result) {
+                $stream->write($result);
+                $stream->end();
+                $resolve(IO('Data written to file'));
+            });
+        })
     );
-    return $pretty($content);
+    return $action($loop);
 }
 
-function _copy(string $from, string $to) : IO
-{
-    $copy = A\compose(A\partial('copy', $from), IO\IO);
-    return $copy($to);
-}
+$loop = \React\EventLoop\Factory::create();
 
-function _copyFile(string $from) : IO
-{
-    return M\bind(function (bool $result) {
-        $ret = A\compose(IO\IO, IO\_print);
-        return $ret(
-            $result ? 
-                Console\color('File created', 'green') : 
-                Console\color('File not created', 'red')
-        ); 
-    }, _copy($from, State::CLIENT_CONFIG_FILE));
-}
+$result = main($loop)->then(
+    function ($result) {
+        _print($result);
+    },
+    function ($error) {
+        echo $error->getMessage();
+    }
+);
 
-function main() : IO
-{
-    return _copyFile(Http\_configPath());
-}
-
-main();
+$loop->run();
