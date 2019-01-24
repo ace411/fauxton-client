@@ -19,17 +19,14 @@
         "php": ">=7.0",
         "chemem/bingo-functional": "~1",
         "composer/ca-bundle": "~1",
-        "mmarica/display-table": "~1",
-        "jakub-onderka/php-console-color": "~0.1",  
-        "chemem/bingo-functional-http": "dev-master"  
+        "clue/buzz-react": "~2",
+        "react/filesystem": "~0" 
     },
     "autoload": {
         "psr-4": {
             "Chemem\\Fauxton\\": "src/"
         },
         "files": [
-            "src/Console/parser.php",
-            "src/Console/Console.php",
             "src/Http/functions.php",
             "src/Actions/functions.php"
         ]
