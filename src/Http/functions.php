@@ -14,20 +14,51 @@ use \Chemem\Bingo\Functional\Algorithms as A;
 use \Chemem\Bingo\Functional\Functors\Monads as M;
 use \Chemem\Bingo\Functional\PatternMatching as PM;
 use \Chemem\Bingo\Functional\Functors\Monads\IO;
-use \Chemem\Bingo\Functional\Http;
 use \Chemem\Fauxton\Config\State;
+use \React\EventLoop\Factory;
+use \Clue\React\Buzz\Browser;
+use \React\Promise\Promise;
+use \Psr\Http\Message\ResponseInterface;
+use \React\Stream\ReadableResourceStream;
+use \React\Filesystem\Filesystem;
+
+function _tls() : array
+{
+    return array(
+        'tls' => A\extend(State::COUCH_TLS, array(
+            'cafile' => \Composer\CaBundle\CaBundle::getBundledCaBundlePath()
+        ))
+    );
+}
+
+const _fetch = 'Chemem\\Fauxton\\Http\\_fetch';
+function _fetch($loop, string $method, ...$opts) : Promise
+{
+    return (new \ReflectionMethod('Clue\\React\\Buzz\\Browser', $method))
+        ->invoke(new Browser($loop, new \React\Socket\Connector($loop, _tls())), ...$opts);
+}
+
+const _fulfillPromise = 'Chemem\\Fauxton\\Http\\_fulfillPromise';
+function _fulfillPromise(Promise $result, callable $success) : Promise
+{
+    return (new Promise(function ($resolve, $reject) use ($result, $success) {
+        $result->then(A\partialRight($success, $resolve), function ($error) use ($reject) {
+            $reject($error->getMessage());
+        });
+    }));
+}
 
 const _httpFetch = 'Chemem\\Fauxton\\Http\\_httpFetch';
-function _httpFetch(string $uri, callable $request, array $headers) : IO
+function _httpFetch($loop, string $method, array $headers, string $content = '', string $uri) : Promise
 {
-    $request = A\compose(
-        $request, 
-        A\partialRight(Http\setHeaders, $headers), 
-        Http\http, 
-        A\partial(M\bind, Http\getResponseBody)
+    $fetch = A\compose(
+        A\partial(_fetch, $loop, $method, $uri, $headers, $content), 
+        A\partialRight(_fulfillPromise, function (ResponseInterface $response, callable $resolve) {
+            $resolve((string) $response->getBody());
+        })
     );
-
-    return $request($uri);
+    
+    return $fetch($headers);
 }
 
 const _credentials = 'Chemem\\Fauxton\\Http\\_credentials'; 
@@ -89,7 +120,10 @@ const _authHeaders = 'Chemem\\Fauxton\\Http\\_authHeaders';
 function _authHeaders(bool $local, string $user, string $pass) : array
 {
     $encode = A\compose(A\partial(A\concat, ':', $user), 'base64_encode');
-    return !$local ? array() : array(A\concat(' ', 'Authorization:', 'Basic', $encode($pass)));
+    return A\extend(
+        State::COUCH_REQHEADERS,
+        !$local ? array() : array('Authorization:' => A\concat(' ', 'Basic', $encode($pass)))
+    );
 }
 
 const _configPath = 'Chemem\\Fauxton\\Http\\_configPath';
@@ -105,27 +139,25 @@ function _configPath() : string
 }
 
 const _readConfig = 'Chemem\\Fauxton\\Http\\_readConfig';
-function _readConfig() : IO
+function _readConfig($loop) : Promise
 {
-    return IO\readFile(_configPath());
+    return Filesystem::create($loop)->getContents(_configPath());
 }
 
 const _exec = 'Chemem\\Fauxton\\Http\\_exec';
-function _exec(callable $request, array $urlOpts, array $headers = array()) : IO
+function _exec($loop, string $method, array $urlOpts, array $body = array()) : Promise
 {
-    $_exec = M\bind(function (string $config) use ($request, $urlOpts, $headers) {
-        $credentials = _credentials($config); 
-        $res = A\compose(
-            A\partialRight(_url, $urlOpts),
-            A\partialRight(
-                _httpFetch, 
-                A\extend($headers, State::COUCH_REQHEADERS, _authHeaders(...$credentials)), 
-                $request
-            ),
-            IO\IO
-        );
-        return $res($credentials);
-    }, _readConfig());
+    $result = A\compose(
+        _readConfig,
+        A\partialRight(_fulfillPromise, function (string $config, callable $resolve) use ($loop, $body, $method, $urlOpts) {
+            $credentials = _credentials($config);
+            $res = A\compose(
+                A\partial(_url, $credentials), 
+                A\partial(_httpFetch, $loop, $method, _authHeaders(...$credentials), empty($body) ? '' : json_encode($body))
+            );
+            $resolve($res($urlOpts));
+        })
+    );
 
-    return $_exec->exec();
+    return $result($loop);
 }
