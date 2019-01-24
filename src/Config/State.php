@@ -19,9 +19,15 @@ class State
     const COUCH_URI_CLOUDANT = 'https://{cloudantUser}:{cloudantPass}@{cloudantHost}';
 
     const COUCH_REQHEADERS = [
-        'Content-Type: application/json',
-        'Accept: application/json'
+        'Content-Type' => 'application/json',
+        'Accept' => 'application/json'
     ];
+
+    const COUCH_TLS = array(
+        'verify_peer' => true,
+        'disable_compression' => true,
+        'ciphers' => 'HIGH:!TLSv1.2:!TLSv1.0:!SSLv3:!SSLv2'
+    );
 
     const CONFIG_PATHS = [
         __DIR__ . '/../../fauxton.json',
@@ -78,63 +84,6 @@ class State
         'changes' => [
             'local' => '{db}/_changes?{params}',
             'cloudant' => '{db}/_changes?{params}'
-        ]
-    ];
-
-    const CONSOLE_PROMPT = '>>> ';
-
-    const CONSOLE_COMMANDS = [
-        'exit' => [
-            'cmd' => 'exit',
-            'desc' => 'Terminates the Fauxton console'
-        ],
-        'config' => [
-            'cmd' => 'config <option> eg config credentials, config console',
-            'desc' => 'Shows the fauxton client configuration'
-        ],
-        'alldbs' => [
-            'cmd' => 'alldbs',
-            'desc' => 'Shows all available databases'
-        ],
-        'uuids' => [
-            'cmd' => 'uuids <count> eg uuids 2',
-            'desc' => 'Outputs a specified number of unique ids'
-        ],
-        'cred' => [
-            'cmd' => 'cred <type> <username> <password> eg cred local foo foobar',
-            'desc' => 'Sets CouchDB username and password'
-        ],
-        'gzip' => [
-            'cmd' => 'gzip <database> <file> eg gzip meetups meetups.gz',
-            'desc' => 'gzips a database\'s contents'
-        ],
-        'unzip' => [
-            'cmd' => 'unzip <file> eg unzip meetups.gz',
-            'desc' => 'unzips gzipped file'
-        ],
-        'use' => [
-            'cmd' => 'use <option> eg use local',
-            'desc' => 'Modifies local parameter in fauxton-client configuration'
-        ],
-        'alldocs' => [
-            'cmd' => 'alldocs <database> eg docs nba_players',
-            'desc' => 'Outputs all the documents in a database'
-        ],
-        'cmd' => [
-            'cmd' => 'doc <database> <docId> eg doc nba_players dwayne_wade',
-            'desc' => 'Outputs a document\'s contents' 
-        ],
-        'search' => [
-            'cmd' => 'search <database> <selector> eg search rap_artists {"name":{"$eq":"bronson"}}',
-            'desc' => 'Searches a database (Powered by Mango queries)'
-        ],
-        'explain' => [
-            'cmd' => 'explain <command> eg explain alldocs',
-            'desc' => 'Provides a description of a command'
-        ],
-        'db' => [
-            'cmd' => 'db <database> eg db action_movies',
-            'desc' => 'Shows database metadata'
         ]
     ];
 }
