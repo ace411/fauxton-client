@@ -1,6 +1,8 @@
 # fauxton-client
 A simple CouchDB interaction library.
 
+**Note:** This version of the fauxton-client is dependent on ReactPHP. As such, it offers the cogencies of CouchDB interactions in a non-blocking IO environment.
+
 ## Requirements
 
 - PHP 7.0+
