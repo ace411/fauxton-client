@@ -213,3 +213,17 @@ function docKeys(string $database, array $keys, array $params = array()) : Reade
         isset($keys['keys']) ? $keys : array('keys' => $keys)
     );
 }
+
+const createIndex = 'Chemem\\Fauxton\\Actions\\createIndex';
+function createIndex(string $database, string $index, array $params) : Reader
+{
+    return isset($params['index']) && is_array($params['index']) ?
+        _action('post', array('index' => array('{db}' => $database)), $params) :
+        _readerException('"index" key is missing. Schema is {"index": [data]}');
+}
+
+const getIndexes = 'Chemem\\Fauxton\\Actions\\getIndexes';
+function getIndexes(string $database) : Reader
+{
+    return _action('get', array('index' => array('{db}' => $database)));
+}
