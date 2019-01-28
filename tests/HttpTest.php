@@ -4,243 +4,117 @@ namespace Chemem\Fauxton\Tests;
 
 use \Eris\Generator;
 use \Chemem\Fauxton\Config\State;
-use \Jfalque\HttpMock\Server;
-use \GuzzleHttp\Psr7\{Response, Request};
 use \Chemem\Fauxton\Http;
 use \Chemem\Bingo\Functional\Functors\Monads\IO;
 use \Chemem\Bingo\Functional\Algorithms as A;
 use \Chemem\Bingo\Functional\Functors\Monads as M;
 use \Chemem\Bingo\Functional\PatternMatching as PM;
+use \Psr\Http\Message\ResponseInterface;
 
 class HttpTest extends \PHPUnit\Framework\TestCase
 {
     use \Eris\TestTrait;
 
-    const DECONSTRUCT = array('code', 'method', 'headers', 'body');
+    private $eventLoop;
 
-    const _genUrl = 'Chemem\\Fauxton\\Tests\\HttpTest::_genUrl';
-    public static function _genUrl(array $request) : IO
+    public function setUp()
     {
-        return M\bind(function (string $content) use ($request) {
-            $uri = A\compose(Http\_credentials, A\partialRight(Http\_url, $request), IO\IO);
-            return $uri($content);
-        }, Http\_readConfig());
+        $this->eventLoop = $this->getMockBuilder('React\\EventLoop\\LoopInterface')->getMock();
     }
 
-    const mockHttpFetch = 'Chemem\\Fauxton\\Tests\\HttpTest::mockHttpFetch';
-    public static function mockHttpFetch(array $request, array $response) : IO
-    {
-        return M\bind(function (string $url) use ($response) {
-            $let = PM\letIn(self::DECONSTRUCT, $response);
-            
-            return $let(self::DECONSTRUCT, function ($code, $method, $headers, $body) use ($url) : IO {
-                $http = (new Server)
-                    ->whenUri($url)
-                    ->return (new Response($code, $headers, $body))
-                    ->end();
-
-                return IO\IO(
-                    $http->handle(new Request($method, $url))
-                        ->getBody()
-                        ->getContents()
-                );
-            });
-        }, self::_genUrl($request));
-    }
-
-    const _strlen = 'Chemem\\Fauxton\\Tests\\HttpTest::_strlen';
-    public static function _strlen(string $string) : bool
-    {
-        return strlen($string) > 5;
-    }
-
-    public function testUuidsFunctionOutputsUniqueIdentifiers()
+    public function testUrlFunctionGeneratesAppropriateRequestUrl()
     {
         $this->forAll(
-            Generator\choose(1, 3), 
-            Generator\elements(
-                ['uuids' => ['75480ca477454894678e22eec6002413']],
-                [
-                    'uuids' => [
-                        '75480ca477454894678e22eec600250b',
-                        '75480ca477454894678e22eec6002c41'
-                    ]
-                ],
-                [
-                    'uuids' => [
-                        '75480ca477454894678e22eec6003b90',
-                        '75480ca477454894678e22eec6003fca',
-                        '75480ca477454894678e22eec6004bef',
-                    ]
-                ]    
-            )
+            Generator\string(),
+            Generator\string(),
+            Generator\bool(),
+            Generator\int()
         )
-            ->then(function ($count, $response) {
-                $resp = \json_encode($response);
-                $uuids = $this->mockHttpFetch(
-                    ['uuids' => ['{count}' => $count]],
-                    [200, 'GET', State::COUCH_REQHEADERS, $resp]
-                );
-
-                $this->assertInstanceOf(IO::class, $uuids);
-                $this->assertInternalType('string', $uuids->exec());
-                $this->assertEquals($resp, $uuids->exec());
-            });
-    }
-
-    public function testCredentialsFunctionExtractsCouchDbAuthCredentials()
-    {
-        $this->forAll(Generator\constant(Http\_readConfig))
-            ->then(function (callable $path) {
-                $credentials = M\bind(function (string $config) {
-                    return IO\IO(Http\_credentials($config));
-                }, $path())->exec();
-
-                $this->assertInternalType('array', $credentials);
-                $this->assertTrue(count($credentials) == 3);
-            });
-    }
-
-    public function testUrlFunctionOutputsCouchDbAccessUrl()
-    {
-        $this->forAll(
-            Generator\constant(Http\_readConfig),
-            Generator\elements(
-                ['dbgen' => ['{db}' => 'dummy_data']],
-                ['uuids' => ['{count}' => 12]]
-            )
-        )
-            ->then(function (callable $path, array $params) {
-                $url = M\bind(function (string $config) use ($params) {
-                    $url = A\compose(Http\_credentials, A\partialRight(Http\_url, $params), IO\IO);
-                    return $url($config);
-                }, $path())->exec();
+            ->then(function (string $user, string $pwd, bool $local, int $count) {
+                $url = Http\_url(array($local, $user, $pwd), array('uuids' => array('{count}' => $count)));
 
                 $this->assertInternalType('string', $url);
-                $this->assertRegExp('/(http|https*)(:*)(\/{2})([\w\W\d]*)/', $url);
+                $this->assertRegExp('/(http|https){1}(:){1}(\/){1}([\w\D\W]*)/', $url);
             });
     }
 
-    public function testAuthHeadersOutputsHeadersForHttpRequest()
+    public function testTlsFunctionOutputsArrayContainingTLSConfiguration()
     {
-        $this->forAll(
-            Generator\associative([
-                'local' => Generator\bool(),
-                'user' => Generator\suchThat(self::_strlen, Generator\string()),
-                'pass' => Generator\suchThat(self::_strlen, Generator\string())
-            ])
-        )
-            ->then(function (array $credentials) {
-                $pluck = A\partial(A\pluck, $credentials);
+        $this->forAll(Generator\constant('Chemem\\Fauxton\\Http\\_tls'))
+            ->then(function (callable $function) {
+                $tlsOpts = $function();
 
-                $headers = Http\_authHeaders($pluck('local'), $pluck('user'), $pluck('pass'));
-
-                $this->assertInternalType('array', $headers);
+                $this->assertInternalType('array', $tlsOpts);
+                $this->assertArrayHasKey('tls', $tlsOpts);
             });
     }
 
-    public function testDatabaseFunctionManipulatesDatabase()
+    public function testFetchFunctionOutputsInstanceOfReactPromise()
     {
-        $this->forAll(
-            Generator\constant('dummy_database'),
-            Generator\elements('PUT', 'DELETE', 'GET'),
-            Generator\elements(
-                ['ok' => true],
-                ['ok' => true],
-                [
-                    "committed_update_seq" => 292786,
-                    "compact_running" => false,
-                    "data_size" => 65031503,
-                    "db_name" => "receipts",
-                    "disk_format_version" => 6,
-                    "disk_size" => 137433211,
-                    "doc_count" => 6146,
-                    "doc_del_count" => 64637,
-                    "instance_start_time" => "1376269325408900",
-                    "purge_seq" => 0,
-                    "update_seq" => 292786
-                ]
+        $this->forAll(Generator\elements(
+            array('get', State::COUCH_URI_LOCAL, State::COUCH_REQHEADERS),
+            array(
+                'post', 
+                A\concat('/', State::COUCH_URI_LOCAL, 'testdb', '_all_docs'), 
+                State::COUCH_REQHEADERS, 
+                json_encode(array('keys' => array('abc', '123')))
             )
-        )
-            ->then(function ($database, $method, $response) {
-                $resp = \json_encode($response);
-                $db = $this->mockHttpFetch(
-                    ['dbgen' => ['{db}' => $database]],
-                    [200, $method, State::COUCH_REQHEADERS, $resp]
-                );
+        ))
+            ->then(function (array $opts) {
+                $req = Http\_fetch($this->eventLoop, ...$opts)->then(function (ResponseInterface $response) {
+                    $this->assertInstanceOf(ResponseInterface::class, $response);
+                    $this->assertInternalType('string', (string) $response->getBody());
+                });
 
-                $this->assertInstanceOf(IO::class, $db);
-                $this->assertEquals($resp, $db->exec());
+                $this->assertInstanceOf(\React\Promise\Promise::class, $req);
             });
     }
-
-    public function testAllDbsFunctionDisplaysAllAvailableDatabases()
-    {
-        $this->forAll(Generator\elements(['dummy_database', 'security']))
-            ->then(function ($dbs) {
-                $res = \json_encode($dbs);
-                $dbs = $this->mockHttpFetch(['allDbs' => []], [200, 'GET', State::COUCH_REQHEADERS, $res]);
-
-                $this->assertInstanceOf(IO::class, $dbs);
-                $this->assertEquals($res, $dbs->exec());
-            });
-    }
-
-    public function testAllDocsFunctionOutputsAllDatabaseDocuments()
+    
+    public function testExecFunctionOutputsPromise()
     {
         $this->forAll(
-            Generator\constant('dummy_database'),
-            Generator\constant(\json_encode([
-                "offset" => 0,
-                "rows" => [
-                    [
-                        "id" => "16e458537602f5ef2a710089dffd9453",
-                        "key" => "16e458537602f5ef2a710089dffd9453",
-                        "value" => [
-                            "rev" => "1-967a00dff5e02add41819138abb3284d"
-                        ]
-                    ],
-                    [
-                        "id" => "a4c51cdfa2069f3e905c431114001aff",
-                        "key" => "a4c51cdfa2069f3e905c431114001aff",
-                        "value" => [
-                            "rev" => "1-967a00dff5e02add41819138abb3284d"
-                        ]
-                    ],
-                    [
-                        "id" => "a4c51cdfa2069f3e905c4311140034aa",
-                        "key" => "a4c51cdfa2069f3e905c4311140034aa",
-                        "value" => [
-                            "rev" => "5-6182c9c954200ab5e3c6bd5e76a1549f"
-                        ]
-                    ],
-                    [
-                        "id" => "a4c51cdfa2069f3e905c431114003597",
-                        "key" => "a4c51cdfa2069f3e905c431114003597",
-                        "value" => [
-                            "rev" => "2-7051cbe5c8faecd085a3fa619e6e6337"
-                        ]
-                    ],
-                    [
-                        "id" => "f4ca7773ddea715afebc4b4b15d4f0b3",
-                        "key" => "f4ca7773ddea715afebc4b4b15d4f0b3",
-                        "value" => [
-                            "rev" => "2-7051cbe5c8faecd085a3fa619e6e6337"
-                        ]
-                    ]
-                ],
-                "total_rows" => 5
-            ]))
-        )
-            ->then(function ($database, $docs) {
-                $result = $this->mockHttpFetch(
-                    ['allDocs' => ['{db}' => $database, '{params}' => '']],
-                    [200, 'GET', State::COUCH_REQHEADERS, $docs]
-                );
+            Generator\elements(
+                array('uuids' => array('{count}' => 2)),
+                array('allDbs' => array())
+            )
+        )->then(function (array $urlOpts) {
+            $exec = Http\_exec($this->eventLoop, 'get', $urlOpts);
 
-                $this->assertInstanceOf(IO::class, $result);
-                $this->assertInternalType('string', $result->exec());
-                $this->assertEquals($docs, $result->exec());
+            $this->assertInstanceOf(\React\Promise\Promise::class, $exec);
+        });        
+    }
+
+    public function testConfigPathOutputsFauxtonJsonConfigurationFilePath()
+    {
+        $this->forAll(Generator\constant('Chemem\\Fauxton\\Http\\_configPath'))
+            ->then(function (callable $function) {
+                $config = $function();
+
+                $this->assertInternalType('string', $config);
+                $this->assertRegExp('/([.\\w\/])+/', $config);
+            });
+    }
+
+    public function testReadConfigOutputsInstanceOfReactPromise()
+    {
+        $this->forAll(Generator\constant('Chemem\\Fauxton\\Http\\_readConfig'))
+            ->then(function (callable $function) {
+                $config = $function($this->eventLoop);
+                $config->then(function ($contents) {
+                    $this->assertInternalType('string', $contents);
+                });
+
+                $this->assertInstanceOf(\React\Promise\Promise::class, $config);
+            });
+    }
+
+    public function testCredentialsFunctionOutputsPivotalConfigurationOptions()
+    {
+        $this->forAll(Generator\constant('Chemem\\Fauxton\\Http\\_credentials'))
+            ->then(function (callable $function) {
+                $config = M\bind(A\compose($function, IO\IO), IO\readFile(Http\_configPath()))->exec();
+
+                $this->assertInternalType('array', $config);
             });
     }
 }
