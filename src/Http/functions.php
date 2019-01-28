@@ -38,29 +38,6 @@ function _fetch($loop, string $method, ...$opts) : Promise
         ->invoke(new Browser($loop, new \React\Socket\Connector($loop, _tls())), ...$opts);
 }
 
-const _fulfillPromise = 'Chemem\\Fauxton\\Http\\_fulfillPromise';
-function _fulfillPromise(Promise $result, callable $success) : Promise
-{
-    return (new Promise(function ($resolve, $reject) use ($result, $success) {
-        $result->then(A\partialRight($success, $resolve), function ($error) use ($reject) {
-            $reject($error->getMessage());
-        });
-    }));
-}
-
-const _httpFetch = 'Chemem\\Fauxton\\Http\\_httpFetch';
-function _httpFetch($loop, string $method, array $headers, string $content = '', string $uri) : Promise
-{
-    $fetch = A\compose(
-        A\partial(_fetch, $loop, $method, $uri, $headers, $content), 
-        A\partialRight(_fulfillPromise, function (ResponseInterface $response, callable $resolve) {
-            $resolve((string) $response->getBody());
-        })
-    );
-    
-    return $fetch($headers);
-}
-
 const _credentials = 'Chemem\\Fauxton\\Http\\_credentials'; 
 function _credentials(string $config) : array
 {
@@ -122,7 +99,7 @@ function _authHeaders(bool $local, string $user, string $pass) : array
     $encode = A\compose(A\partial(A\concat, ':', $user), 'base64_encode');
     return A\extend(
         State::COUCH_REQHEADERS,
-        !$local ? array() : array('Authorization:' => A\concat(' ', 'Basic', $encode($pass)))
+        !$local ? array() : array('Authorization' => A\concat(' ', 'Basic', $encode($pass)))
     );
 }
 
@@ -147,17 +124,9 @@ function _readConfig($loop) : Promise
 const _exec = 'Chemem\\Fauxton\\Http\\_exec';
 function _exec($loop, string $method, array $urlOpts, array $body = array()) : Promise
 {
-    $result = A\compose(
-        _readConfig,
-        A\partialRight(_fulfillPromise, function (string $config, callable $resolve) use ($loop, $body, $method, $urlOpts) {
-            $credentials = _credentials($config);
-            $res = A\compose(
-                A\partial(_url, $credentials), 
-                A\partial(_httpFetch, $loop, $method, _authHeaders(...$credentials), empty($body) ? '' : json_encode($body))
-            );
-            $resolve($res($urlOpts));
-        })
-    );
-
-    return $result($loop);
+    return _readConfig($loop)
+        ->then(function (string $contents) use ($method, $urlOpts, $body, $loop) {
+            $credentials = _credentials($contents);
+            return _fetch($loop, $method, _url($credentials, $urlOpts), _authHeaders(...$credentials), empty($body) ? '' : json_encode($body));
+        });    
 }
