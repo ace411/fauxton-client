@@ -24,7 +24,7 @@ const _action = 'Chemem\\Fauxton\\Actions\\_action';
 function _action(...$opts) : Reader
 {
     return Reader\reader(function ($loop) use ($opts) {
-        return Http\_exec($loop, ...$opts);
+        return \React\Promise\resolve(Http\_exec($loop, ...$opts)); 
     });
 }
 
@@ -215,7 +215,7 @@ function docKeys(string $database, array $keys, array $params = array()) : Reade
 }
 
 const createIndex = 'Chemem\\Fauxton\\Actions\\createIndex';
-function createIndex(string $database, string $index, array $params) : Reader
+function createIndex(string $database, array $params) : Reader
 {
     return isset($params['index']) && is_array($params['index']) ?
         _action('post', array('index' => array('{db}' => $database)), $params) :
