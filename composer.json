@@ -11,6 +11,7 @@
         }
     ],
     "require-dev": {
+        "clue/block-react": "~1",
         "phpunit/phpunit": "~6.0",
         "giorgiosironi/eris": "~0.10"
     },
@@ -18,7 +19,6 @@
         "php": ">=7.0",
         "chemem/bingo-functional": "~1",
         "composer/ca-bundle": "~1",
-        "clue/block-react": "~1",
         "clue/buzz-react": "~2",
         "react/filesystem": "~0" 
     },
