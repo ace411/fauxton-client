@@ -1,4 +1,7 @@
 # fauxton-client
+
+[![Build Status](https://travis-ci.org/ace411/fauxton-client.svg?branch=async)](https://travis-ci.org/ace411/fauxton-client)
+
 A simple CouchDB interaction library.
 
 **Note:** This version of the fauxton-client is dependent on ReactPHP. As such, it offers the cogencies of CouchDB interactions in a non-blocking IO environment.
@@ -13,7 +16,7 @@ fauxton-client is available on Packagist. To install it, type the following on y
 command-line interface:
 
 ```
-composer require chemem/fauxton-client dev-master
+composer require chemem/fauxton-client dev-async
 ```
 
 ## Fauxton
@@ -46,7 +49,11 @@ and therefore, prudent.
 
 ## Running the unit tests
 
-In order to run the unit tests, run the following command:
+Follow the following steps:
+
+- Create a database called ```testdb```
+
+- Type the following in a command line of your choosing:
 
 ```
 vendor/bin/phpunit -c phpunit.xml.dist
