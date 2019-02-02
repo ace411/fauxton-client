@@ -1,9 +1,9 @@
 <?php
 
 /**
- * 
+ *
  * fauxton-client http function helpers
- * 
+ *
  * @author Lochemem Bruno Michael
  * @license Apache-2.0
  */
@@ -38,7 +38,7 @@ function _fetch($loop, string $method, ...$opts) : Promise
         ->invoke(new Browser($loop, new \React\Socket\Connector($loop, _tls())), ...$opts);
 }
 
-const _credentials = 'Chemem\\Fauxton\\Http\\_credentials'; 
+const _credentials = 'Chemem\\Fauxton\\Http\\_credentials';
 function _credentials(string $config) : array
 {
     $let = PM\letIn(array('username', 'password', '_', 'local'), json_decode($config, true));
@@ -47,7 +47,7 @@ function _credentials(string $config) : array
         $credentials = A\curry(A\pluck);
 
         return A\extend(
-            array($local), 
+            array($local),
             array($local ? $credentials($username)('local') : $credentials($username)('cloudant')),
             array($local ? $credentials($password)('local') : $credentials($password)('cloudant'))
         );
@@ -68,7 +68,7 @@ function _url(array $credentials, array $opts) : string
             A\partialRight('rtrim', '?')
         );
 
-        return A\concat('/', _schemeHost($local, $user, $pass), $fragments(State::COUCH_ACTIONS));       
+        return A\concat('/', _schemeHost($local, $user, $pass), $fragments(State::COUCH_ACTIONS));
     });
 }
 
@@ -84,8 +84,8 @@ function _urlFragments(array $opts, bool $local) : callable
 const _schemeHost = 'Chemem\\Fauxton\\Http\\_schemeHost';
 function _schemeHost(bool $local, string $user, string $pass) : string
 {
-    return $local ? 
-        State::COUCH_URI_LOCAL : 
+    return $local ?
+        State::COUCH_URI_LOCAL :
         str_replace(
             array('{cloudantUser}', '{cloudantPass}', '{cloudantHost}'),
             array($user, $pass, A\concat('.', $user, 'cloudant', 'com')),
@@ -128,5 +128,5 @@ function _exec($loop, string $method, array $urlOpts, array $body = array()) : P
         ->then(function (string $contents) use ($method, $urlOpts, $body, $loop) {
             $credentials = _credentials($contents);
             return _fetch($loop, $method, _url($credentials, $urlOpts), _authHeaders(...$credentials), empty($body) ? '' : json_encode($body));
-        });    
+        });
 }

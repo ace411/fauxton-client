@@ -1,16 +1,16 @@
 <?php
 
 /**
- * 
+ *
  * fauxton-client immutable data
- * 
+ *
  * @author Lochemem Bruno Michael
  * @license Apache-2.0
  */
 
 namespace Chemem\Fauxton\Config;
 
-class State 
+class State
 {
     const CLIENT_CONFIG_FILE = 'fauxton.json';
 

@@ -40,8 +40,8 @@ class ActionsTest extends \PHPUnit\Framework\TestCase
             Generator\elements(
                 array('get', array('uuids' => array('{count}' => 2)), State::COUCH_REQHEADERS),
                 array(
-                    'post', 
-                    array('search' => array('{db}' => 'testdb')), 
+                    'post',
+                    array('search' => array('{db}' => 'testdb')),
                     State::COUCH_REQHEADERS,
                     array(
                         'selector' => array(
@@ -132,7 +132,7 @@ class ActionsTest extends \PHPUnit\Framework\TestCase
 
                 $this->assertInstanceOf(\React\Promise\Promise::class, $promise);
                 $this->assertInternalType('string', $doc);
-            });        
+            });
     }
 
     /**
@@ -159,6 +159,46 @@ class ActionsTest extends \PHPUnit\Framework\TestCase
 
                 $this->assertInstanceOf(\React\Promise\Promise::class, $promise);
                 $this->assertInternalType('string', $search);
+            });
+    }
+
+    /**
+     * @eris-repeat 5
+     */
+    public function testDatabaseOutputsDatabaseRelatedData()
+    {
+        $this->forAll(
+            Generator\constant('testdb'),
+            Generator\elements('view', 'create')
+        )
+            ->then(function (string $database, string $option) {
+                $promise = Actions\database($database, $option)->run($this->eventLoop);
+                $database = self::blockFn()($promise, $this->eventLoop);
+
+                $this->assertInstanceOf(\React\Promise\Promise::class, $promise);
+                $this->assertInternalType('string', $database);
+            });
+    }
+
+    /**
+     * @eris-repeat 5
+     * @eris-ratio 0.1
+     */
+    public function testInsertSinglePutsDataInDatabase()
+    {
+        $this->forAll(
+            Generator\constant('testdb'),
+            Generator\associative([
+                '_id' => Generator\suchThat(self::idConst, Generator\string()),
+                'user' => Generator\names()
+            ])
+        )
+            ->then(function (string $database, array $data) {
+                $promise = Actions\insertSingle($database, $data)->run($this->eventLoop);
+                $insert = self::blockFn()($promise, $this->eventLoop);
+
+                $this->assertInstanceOf(\React\Promise\Promise::class, $promise);
+                $this->assertInternalType('string', $insert);
             });
     }
 }

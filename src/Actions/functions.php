@@ -1,9 +1,9 @@
 <?php
 
 /**
- * 
+ *
  * fauxton-client-supported CouchDB actions
- * 
+ *
  * @author Lochemem Bruno Michael
  * @license Apache-2.0
  */
@@ -24,7 +24,7 @@ const _action = 'Chemem\\Fauxton\\Actions\\_action';
 function _action(...$opts) : Reader
 {
     return Reader\reader(function ($loop) use ($opts) {
-        return \React\Promise\resolve(Http\_exec($loop, ...$opts)); 
+        return \React\Promise\resolve(Http\_exec($loop, ...$opts));
     });
 }
 
@@ -37,7 +37,7 @@ function uuids(int $count) : Reader
 const allDbs = 'Chemem\\Fauxton\\Actions\\allDbs';
 function allDbs() : Reader
 {
-    return _action('get', array('allDbs' => array()));    
+    return _action('get', array('allDbs' => array()));
 }
 
 const allDocs = 'Chemem\\Fauxton\\Actions\\allDocs';
@@ -143,8 +143,8 @@ function updateMultiple(string $database, array $data) : Reader
         return count(A\filter(A\partialRight(A\arrayKeysExist, '_id', '_rev'), $data)) == count($data);
     });
     return !$check($data) ?
-        !isset($data['docs']) ? 
-            _readerException('"docs" key is missing. Schema is {"docs": [{data}]}') : 
+        !isset($data['docs']) ?
+            _readerException('"docs" key is missing. Schema is {"docs": [{data}]}') :
             _readerException('"_rev" and "_id" keys are required for all fields.') :
         insertMultiple($database, $data);
 }
@@ -166,7 +166,7 @@ function deleteMultiple(string $database, array $data) : Reader
 {
     $delete = A\compose(A\partial(A\map, function (array $list) {
         return !is_array($list) ? $list : A\map(A\partialRight(A\extend, array('_deleted' => true)), $list);
-    }), A\partial(_action, 'post', array('bulkdocs' => array('{db}' => $database))));    
+    }), A\partial(_action, 'post', array('bulkdocs' => array('{db}' => $database))));
 
     return isset($data['docs']) ? $delete($data) : _readerException('"docs" key is missing. Schema is {"docs": [{data}]}');
 }
@@ -175,7 +175,7 @@ const changes = 'Chemem\\Fauxton\\Actions\\changes';
 function changes(string $database, array $params = array()) : Reader
 {
     $changes = A\compose(
-        A\partial(_queryParams, 'changes', array('{db}' => $database)), 
+        A\partial(_queryParams, 'changes', array('{db}' => $database)),
         A\partial(_action, 'get')
     );
 
@@ -208,8 +208,8 @@ const docKeys = 'Chemem\\Fauxton\\Actions\\docKeys';
 function docKeys(string $database, array $keys, array $params = array()) : Reader
 {
     return _action(
-        'post', 
-        _queryParams('allDocs', array('{db}' => $database), $params), 
+        'post',
+        _queryParams('allDocs', array('{db}' => $database), $params),
         isset($keys['keys']) ? $keys : array('keys' => $keys)
     );
 }

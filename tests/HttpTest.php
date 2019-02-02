@@ -54,9 +54,9 @@ class HttpTest extends \PHPUnit\Framework\TestCase
         $this->forAll(Generator\elements(
             array('get', State::COUCH_URI_LOCAL, State::COUCH_REQHEADERS),
             array(
-                'post', 
-                A\concat('/', State::COUCH_URI_LOCAL, 'testdb', '_all_docs'), 
-                State::COUCH_REQHEADERS, 
+                'post',
+                A\concat('/', State::COUCH_URI_LOCAL, 'testdb', '_all_docs'),
+                State::COUCH_REQHEADERS,
                 json_encode(array('keys' => array('abc', '123')))
             )
         ))
@@ -81,7 +81,7 @@ class HttpTest extends \PHPUnit\Framework\TestCase
             $exec = Http\_exec($this->eventLoop, 'get', $urlOpts);
 
             $this->assertInstanceOf(\React\Promise\Promise::class, $exec);
-        });        
+        });
     }
 
     public function testConfigPathOutputsFauxtonJsonConfigurationFilePath()
