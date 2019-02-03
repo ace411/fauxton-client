@@ -15,9 +15,13 @@ class ActionsTest extends \PHPUnit\Framework\TestCase
 
     private $eventLoop;
 
+    private $action;
+
     public function setUp()
     {
         $this->eventLoop = Factory::create();
+
+        $this->action = Actions\Action::init($this->eventLoop);
     }
 
     const blockFn = 'Chemem\\Fauxton\\Tests\\ActionsTest::blockFn';
@@ -68,7 +72,7 @@ class ActionsTest extends \PHPUnit\Framework\TestCase
     {
         $this->forAll(Generator\choose(1, 5))
             ->then(function (int $count) {
-                $promise = Actions\uuids($count)->run($this->eventLoop);
+                $promise = $this->action->uuids($count);
                 $uuids = self::blockFn()($promise, $this->eventLoop);
 
                 $this->assertInstanceOf(\React\Promise\Promise::class, $promise);
@@ -81,9 +85,9 @@ class ActionsTest extends \PHPUnit\Framework\TestCase
      */
     public function testAllDbsOutputsListOfDatabasesInStringResponse()
     {
-        $this->forAll(Generator\constant(Actions\allDbs))
-            ->then(function (callable $function) {
-                $promise = $function()->run($this->eventLoop);
+        $this->forAll(Generator\elements([null]))
+            ->then(function ($arg) {
+                $promise = $this->action->allDbs($arg);
                 $allDbs = self::blockFn()($promise, $this->eventLoop);
 
                 $this->assertInstanceOf(\React\Promise\Promise::class, $promise);
@@ -104,7 +108,7 @@ class ActionsTest extends \PHPUnit\Framework\TestCase
             ])
         )
             ->then(function (string $database, array $opts) {
-                $promise = Actions\allDocs($database, $opts)->run($this->eventLoop);
+                $promise = $this->action->allDocs($database, $opts);
                 $allDocs = self::blockFn()($promise, $this->eventLoop);
 
                 $this->assertInstanceOf(\React\Promise\Promise::class, $promise);
@@ -127,7 +131,7 @@ class ActionsTest extends \PHPUnit\Framework\TestCase
             ])
         )
             ->then(function (string $database, string $docId, array $params) {
-                $promise = Actions\doc($database, $docId, $params)->run($this->eventLoop);
+                $promise = $this->action->doc($database, $docId, $params);
                 $doc = self::blockFn()($promise, $this->eventLoop);
 
                 $this->assertInstanceOf(\React\Promise\Promise::class, $promise);
@@ -154,7 +158,7 @@ class ActionsTest extends \PHPUnit\Framework\TestCase
             ])
         )
             ->then(function (string $database, array $query) {
-                $promise = Actions\search($database, $query)->run($this->eventLoop);
+                $promise = $this->action->search($database, $query);
                 $search = self::blockFn()($promise, $this->eventLoop);
 
                 $this->assertInstanceOf(\React\Promise\Promise::class, $promise);
@@ -172,7 +176,7 @@ class ActionsTest extends \PHPUnit\Framework\TestCase
             Generator\elements('view', 'create')
         )
             ->then(function (string $database, string $option) {
-                $promise = Actions\database($database, $option)->run($this->eventLoop);
+                $promise = $this->action->database($database, $option);
                 $database = self::blockFn()($promise, $this->eventLoop);
 
                 $this->assertInstanceOf(\React\Promise\Promise::class, $promise);
@@ -194,11 +198,31 @@ class ActionsTest extends \PHPUnit\Framework\TestCase
             ])
         )
             ->then(function (string $database, array $data) {
-                $promise = Actions\insertSingle($database, $data)->run($this->eventLoop);
+                $promise = $this->action->insertSingle($database, $data);
                 $insert = self::blockFn()($promise, $this->eventLoop);
 
                 $this->assertInstanceOf(\React\Promise\Promise::class, $promise);
                 $this->assertInternalType('string', $insert);
+            });
+    }
+
+    public function testQueryParamsPrintsArrayOfUrlQueryParameters()
+    {
+        $this->forAll(
+            Generator\elements('docById', 'allDocs'),
+            Generator\associative([
+                '{db}' => Generator\string(),
+                '{docId}' => Generator\suchThat(self::idConst, Generator\string())
+            ]),
+            Generator\associative([
+                'include_docs' => Generator\elements('true', 'false'),
+                'descending' => Generator\elements('true', 'false')
+            ])
+        )
+            ->then(function (string $action, array $params, array $urlParams) {
+                $promise = Actions\Action::_queryParams($action, $params, $urlParams);
+
+                $this->assertInternalType('array', $promise);
             });
     }
 }

@@ -2,14 +2,19 @@
 
 require __DIR__ . '../vendor/autoload.php';
 
-use \Chemem\Fauxton\Actions;
 use \React\EventLoop\Factory;
+use \Chemem\Fauxton\Actions\Action;
 use \Psr\Http\Message\ResponseInterface;
 
 $loop = Factory::create();
 
-$docs = Actions\allDocs('your_database')->run($loop)->then(function (ResponseInterface $data) {
-    echo (string) $data->getBody();
-});
+$docs = Action::init($loop)->allDocs('your_database')->then(
+    function (ResponseInterface $response) {
+        echo $response->getBody();
+    },
+    function (\Exception $error) {
+        echo $error->getMessage();
+    }
+);
 
 $loop->run();

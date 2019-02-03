@@ -2,9 +2,9 @@
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use \Chemem\Fauxton\Actions;
 use \React\EventLoop\Factory;
 use function \React\Promise\any;
+use \Chemem\Fauxton\Actions\Action;
 use \Psr\Http\Message\ResponseInterface;
 
 const KEYS = array(
@@ -22,13 +22,20 @@ const QUERY = array(
 
 $loop = Factory::create();
 
+$action = Action::init($loop);
+
 $actions = array(
-    Actions\docKeys('your_database', KEYS, array('include_docs' => 'true'))->run($loop),
-    Actions\search('your_database', QUERY)->run($loop)
+    $action->docKeys('your_database', KEYS, array('include_docs' => 'true')),
+    $action->search('your_database', QUERY)
 );
 
-any($actions)->then(function (ResponseInterface $result) {
-    echo (string) $result->getBody();
-});
+any($actions)->then(
+    function (ResponseInterface $result) {
+        echo (string) $result->getBody();
+    },
+    function (\Exception $error) {
+        echo $error->getMessage();
+    }
+);
 
 $loop->run();
