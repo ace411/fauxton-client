@@ -38,33 +38,6 @@ class ActionsTest extends \PHPUnit\Framework\TestCase
         return preg_match('/([\w\d])+/', $val) && strlen($val) >= 32;
     }
 
-    public function testActionFunctionOutputsPromiseEncapsulatedInReaderMonad()
-    {
-        $this->forAll(
-            Generator\elements(
-                array('get', array('uuids' => array('{count}' => 2)), State::COUCH_REQHEADERS),
-                array(
-                    'post',
-                    array('search' => array('{db}' => 'testdb')),
-                    State::COUCH_REQHEADERS,
-                    array(
-                        'selector' => array(
-                            '_id' => array('$eq' => 'abc')
-                        ),
-                        'skip' => 0,
-                        'limit' => 25
-                    )
-                )
-            )
-        )
-            ->then(function (array $opts) {
-                $action = Actions\_action(...$opts);
-
-                $this->assertInstanceOf(\Chemem\Bingo\Functional\Functors\Monads\Reader::class, $action);
-                $this->assertInstanceOf(\React\Promise\Promise::class, $action->run($this->eventLoop));
-            });
-    }
-
     /**
      * @eris-repeat 5
      */
