@@ -211,7 +211,7 @@ class ActionsTest extends \PHPUnit\Framework\TestCase
                     ]),
                     Generator\associative([
                         'date' => Generator\date()
-                    ]),
+                    ])
                 )
             ])
         )
