@@ -1,6 +1,7 @@
 # fauxton-client
 
 [![Build Status](https://travis-ci.org/ace411/fauxton-client.svg?branch=async)](https://travis-ci.org/ace411/fauxton-client)
+[![codecov](https://codecov.io/gh/ace411/fauxton-client/branch/async/graph/badge.svg)](https://codecov.io/gh/ace411/fauxton-client)
 
 A simple CouchDB interaction library.
 
@@ -8,7 +9,7 @@ A simple CouchDB interaction library.
 
 ## Requirements
 
-- PHP 7.0+
+- PHP 7.1+
 
 ## Installation
 
