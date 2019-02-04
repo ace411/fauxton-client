@@ -195,7 +195,7 @@ class Action
     {
         $delete = A\compose(A\partial(A\map, function (array $list) {
             return !is_array($list) ? $list : A\map(A\partialRight(A\extend, array('_deleted' => true)), $list);
-        }), A\partial(self::_resolve, $this->loop, 'post', array('bulkdocs' => array('{db}' => $database))));
+        }), A\partial(self::_resolve, $this->loop, 'post', array('bulkDocs' => array('{db}' => $database))));
 
         return isset($data['docs']) ? $delete($data) : self::_reject('"docs" key is missing. Schema is {"docs": [{data}]}');
     }
