@@ -41,7 +41,7 @@ function _fetch($loop, string $method, ...$opts) : Promise
 const _credentials = 'Chemem\\Fauxton\\Http\\_credentials';
 function _credentials(string $config) : array
 {
-    $let = PM\letIn(array('username', 'password', '_', 'local'), json_decode($config, true));
+    $let = PM\letIn(array('username', 'password', 'local'), json_decode($config, true));
 
     return $let(array('username', 'password', 'local'), function (array $username, array $password, bool $local) {
         $credentials = A\curry(A\pluck);
