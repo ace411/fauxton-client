@@ -1,6 +1,6 @@
 <?php
 
-require __DIR__ . '../vendor/autoload.php';
+require dirname(__DIR__) . '/vendor/autoload.php';
 
 use \React\EventLoop\Factory;
 use \Chemem\Fauxton\Actions\Action;
