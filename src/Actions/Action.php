@@ -25,17 +25,17 @@ class Action
 
     private $loop;
     
-    public function __construct(object $loop)
+    public function __construct($loop)
     {
         $this->loop = $loop;
     }
 
-    public static function init(object $loop) : Action
+    public static function init($loop) : Action
     {
         return new static($loop);
     }
 
-    public static function _resolve(object $loop, ...$opts) : Promise
+    public static function _resolve($loop, ...$opts) : Promise
     {
         return \React\Promise\resolve(Http\_exec($loop, ...$opts));
     }
@@ -56,7 +56,7 @@ class Action
         });
     }
 
-    public static function _withDb(object $loop, string $method, string $opt, string $database, array $params = []) : Promise
+    public static function _withDb($loop, string $method, string $opt, string $database, array $params = []) : Promise
     {
         return self::_resolve($loop, $method, array(
             $opt => array(
