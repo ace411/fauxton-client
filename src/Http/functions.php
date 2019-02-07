@@ -1,9 +1,9 @@
 <?php
 
 /**
- * 
+ *
  * fauxton-client http function helpers
- * 
+ *
  * @author Lochemem Bruno Michael
  * @license Apache-2.0
  */
@@ -21,16 +21,16 @@ const _httpFetch = 'Chemem\\Fauxton\\Http\\_httpFetch';
 function _httpFetch(string $uri, callable $request, array $headers) : IO
 {
     $request = A\compose(
-        $request, 
-        A\partialRight(Http\setHeaders, $headers), 
-        Http\http, 
+        $request,
+        A\partialRight(Http\setHeaders, $headers),
+        Http\http,
         A\partial(M\bind, Http\getResponseBody)
     );
 
     return $request($uri);
 }
 
-const _credentials = 'Chemem\\Fauxton\\Http\\_credentials'; 
+const _credentials = 'Chemem\\Fauxton\\Http\\_credentials';
 function _credentials(string $config) : array
 {
     $let = PM\letIn(array('username', 'password', '_', 'local'), json_decode($config, true));
@@ -39,7 +39,7 @@ function _credentials(string $config) : array
         $credentials = A\curry(A\pluck);
 
         return A\extend(
-            array($local), 
+            array($local),
             array($local ? $credentials($username)('local') : $credentials($username)('cloudant')),
             array($local ? $credentials($password)('local') : $credentials($password)('cloudant'))
         );
@@ -60,7 +60,7 @@ function _url(array $credentials, array $opts) : string
             A\partialRight('rtrim', '?')
         );
 
-        return A\concat('/', _schemeHost($local, $user, $pass), $fragments(State::COUCH_ACTIONS));       
+        return A\concat('/', _schemeHost($local, $user, $pass), $fragments(State::COUCH_ACTIONS));
     });
 }
 
@@ -76,8 +76,8 @@ function _urlFragments(array $opts, bool $local) : callable
 const _schemeHost = 'Chemem\\Fauxton\\Http\\_schemeHost';
 function _schemeHost(bool $local, string $user, string $pass) : string
 {
-    return $local ? 
-        State::COUCH_URI_LOCAL : 
+    return $local ?
+        State::COUCH_URI_LOCAL :
         str_replace(
             array('{cloudantUser}', '{cloudantPass}', '{cloudantHost}'),
             array($user, $pass, A\concat('.', $user, 'cloudant', 'com')),
@@ -114,12 +114,12 @@ const _exec = 'Chemem\\Fauxton\\Http\\_exec';
 function _exec(callable $request, array $urlOpts, array $headers = array()) : IO
 {
     $_exec = M\bind(function (string $config) use ($request, $urlOpts, $headers) {
-        $credentials = _credentials($config); 
+        $credentials = _credentials($config);
         $res = A\compose(
             A\partialRight(_url, $urlOpts),
             A\partialRight(
-                _httpFetch, 
-                A\extend($headers, State::COUCH_REQHEADERS, _authHeaders(...$credentials)), 
+                _httpFetch,
+                A\extend($headers, State::COUCH_REQHEADERS, _authHeaders(...$credentials)),
                 $request
             ),
             IO\IO

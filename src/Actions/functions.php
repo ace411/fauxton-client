@@ -1,9 +1,9 @@
 <?php
 
 /**
- * 
+ *
  * fauxton-client-supported CouchDB actions
- * 
+ *
  * @author Lochemem Bruno Michael
  * @license Apache-2.0
  */
@@ -27,7 +27,7 @@ function uuids(int $count) : IO
 const allDbs = 'Chemem\\Fauxton\\Actions\\allDbs';
 function allDbs() : IO
 {
-    return Http\_exec(_Http\getRequest, array('allDbs' => array()));    
+    return Http\_exec(_Http\getRequest, array('allDbs' => array()));
 }
 
 const allDocs = 'Chemem\\Fauxton\\Actions\\allDocs';
@@ -97,8 +97,8 @@ function _put(array $data) : callable
 
 const _IOException = 'Chemem\\Fauxton\\Actions\\_IOException';
 function _IOException(string $msg) : IO
-{  
-    return function_exists(IO\IOException) ? IO\IOException($msg) : 
+{
+    return function_exists(IO\IOException) ? IO\IOException($msg) :
         IO\IO(function () use ($msg) {
             return function () use ($msg) {
                 throw new \Exception($msg);
@@ -147,8 +147,8 @@ function updateMultiple(string $database, array $data) : IO
         return count(A\filter(A\partialRight(A\arrayKeysExist, '_id', '_rev'), $data)) == count($data);
     });
     return !$check($data) ?
-        !isset($data['docs']) ? 
-            _IOException('"docs" key is missing. Schema is {"docs": [{data}]}') : 
+        !isset($data['docs']) ?
+            _IOException('"docs" key is missing. Schema is {"docs": [{data}]}') :
             _IOException('"_rev" and "_id" keys are required for all fields.') :
         insertMultiple($database, $data);
 }
@@ -170,7 +170,7 @@ function deleteMultiple(string $database, array $data) : IO
 {
     $delete = A\compose(A\partial(A\map, function (array $list) {
         return !is_array($list) ? $list : A\map(A\partialRight(A\extend, array('_deleted' => true)), $list);
-    }), _post);    
+    }), _post);
 
     return !isset($data['docs']) ?
         _IOException('"docs" key is missing. Schema is {"docs": [{data}]}') :

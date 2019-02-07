@@ -1,16 +1,16 @@
 <?php
 
 /**
- * 
+ *
  * fauxton-client immutable data
- * 
+ *
  * @author Lochemem Bruno Michael
  * @license Apache-2.0
  */
 
 namespace Chemem\Fauxton\Config;
 
-class State 
+class State
 {
     const CLIENT_CONFIG_FILE = 'fauxton.json';
 
@@ -122,7 +122,7 @@ class State
         ],
         'cmd' => [
             'cmd' => 'doc <database> <docId> eg doc nba_players dwayne_wade',
-            'desc' => 'Outputs a document\'s contents' 
+            'desc' => 'Outputs a document\'s contents'
         ],
         'search' => [
             'cmd' => 'search <database> <selector> eg search rap_artists {"name":{"$eq":"bronson"}}',

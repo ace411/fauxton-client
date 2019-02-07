@@ -1,9 +1,9 @@
 <?php
 
 /**
- * 
+ *
  * fauxton-client console command parser
- * 
+ *
  * @author Lochemem Bruno Michael
  * @license Apache-2.0
  */
@@ -15,7 +15,8 @@ use \Chemem\Bingo\Functional\Algorithms as A;
 use \Chemem\Bingo\Functional\Functors\Monads as M;
 use \Chemem\Bingo\Functional\Functors\Monads\IO;
 use \Mmarica\DisplayTable;
-use \Chemem\Fauxton\{Http, Actions};
+use \Chemem\Fauxton\Http;
+use \Chemem\Fauxton\Actions;
 use \JakubOnderka\PhpConsoleColor\ConsoleColor;
 use \Chemem\Bingo\Functional\PatternMatching as PM;
 
@@ -162,8 +163,8 @@ function _cliOpts(string $opt, array $merge = array()) : IO
 {
     return M\bind(function (string $content) use ($opt, $merge) {
         $config = A\compose(
-            A\partialRight('json_decode', true), 
-            A\partialRight(A\pluck, 'console'), 
+            A\partialRight('json_decode', true),
+            A\partialRight(A\pluck, 'console'),
             A\partialRight(A\pluck, $opt),
             A\partialRight(A\extend, $merge),
             IO\IO
@@ -221,10 +222,10 @@ function _multiple(callable $action) : IO
 {
     return _output(function (array $docs) {
         $ret = A\compose(
-            A\partialRight(A\pluck, 'rows'), 
+            A\partialRight(A\pluck, 'rows'),
             A\partial(A\map, A\partialRight(A\pluck, 'doc')),
             A\partial(A\filter, function (array $doc) : bool {
-                return !key_exists('views', $doc); 
+                return !key_exists('views', $doc);
             })
         );
         return $ret($docs);
@@ -261,7 +262,7 @@ function _allCmds() : IO
 const _explain = 'Chemem\\Fauxton\\Console\\_explain';
 function _explain(string $cmd) : IO
 {
-    return !isset(State::CONSOLE_COMMANDS[$cmd]) ? 
+    return !isset(State::CONSOLE_COMMANDS[$cmd]) ?
         IO\IO(_style('Command does not exist', 'yellow')) :
         _cmd()(function (array $cmds) use ($cmd) {
             return array(A\pluck($cmds, $cmd));
@@ -275,8 +276,8 @@ function _writeConfig(callable $transform, callable $printMsg) : IO
         $write = A\compose(
             A\partialRight('json_decode', true),
             $transform,
-            A\partialRight('json_encode', JSON_PRETTY_PRINT), 
-            A\partial(IO\writeFile, Http\_configPath()), 
+            A\partialRight('json_encode', JSON_PRETTY_PRINT),
+            A\partial(IO\writeFile, Http\_configPath()),
             $printMsg
         );
         return $write($content);
@@ -284,7 +285,7 @@ function _writeConfig(callable $transform, callable $printMsg) : IO
 }
 
 const _writeMsg = 'Chemem\\Fauxton\\Console\\_writeMsg';
-function _writeMsg(IO $result, string $success, string $failure) : IO 
+function _writeMsg(IO $result, string $success, string $failure) : IO
 {
     return M\bind(function (int $result) use ($success, $failure) {
         return IO\IO($result > 0 ? $success : $failure);
@@ -312,7 +313,7 @@ const _gzDoc = 'Chemem\\Fauxton\\Console\\_gzDoc';
 function _gzDoc(string $database, string $file) : IO
 {
     return M\bind(
-        A\partial(_gzip, A\concat('.', $file, 'gz')), 
+        A\partial(_gzip, A\concat('.', $file, 'gz')),
         M\bind(A\partial(Actions\allDocs, $database), _cliOpts('alldocs'))
     );
 }
@@ -321,6 +322,6 @@ const _gzDocUnzip = 'Chemem\\Fauxton\\Console\\_gzDocUnzip';
 function _gzDocUnzip(string $file) : IO
 {
     return _multiple(function () use ($file) : IO {
-        return _gUnzip(A\concat('.', $file, 'gz')); 
+        return _gUnzip(A\concat('.', $file, 'gz'));
     });
 }

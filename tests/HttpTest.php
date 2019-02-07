@@ -5,7 +5,8 @@ namespace Chemem\Fauxton\Tests;
 use \Eris\Generator;
 use \Chemem\Fauxton\Config\State;
 use \Jfalque\HttpMock\Server;
-use \GuzzleHttp\Psr7\{Response, Request};
+use \GuzzleHttp\Psr7\Response;
+use \GuzzleHttp\Psr7\Request;
 use \Chemem\Fauxton\Http;
 use \Chemem\Bingo\Functional\Functors\Monads\IO;
 use \Chemem\Bingo\Functional\Algorithms as A;
@@ -36,7 +37,7 @@ class HttpTest extends \PHPUnit\Framework\TestCase
             return $let(self::DECONSTRUCT, function ($code, $method, $headers, $body) use ($url) : IO {
                 $http = (new Server)
                     ->whenUri($url)
-                    ->return (new Response($code, $headers, $body))
+                    ->return(new Response($code, $headers, $body))
                     ->end();
 
                 return IO\IO(
@@ -57,7 +58,7 @@ class HttpTest extends \PHPUnit\Framework\TestCase
     public function testUuidsFunctionOutputsUniqueIdentifiers()
     {
         $this->forAll(
-            Generator\choose(1, 3), 
+            Generator\choose(1, 3),
             Generator\elements(
                 ['uuids' => ['75480ca477454894678e22eec6002413']],
                 [
@@ -72,7 +73,7 @@ class HttpTest extends \PHPUnit\Framework\TestCase
                         '75480ca477454894678e22eec6003fca',
                         '75480ca477454894678e22eec6004bef',
                     ]
-                ]    
+                ]
             )
         )
             ->then(function ($count, $response) {

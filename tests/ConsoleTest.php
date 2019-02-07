@@ -23,7 +23,7 @@ class ConsoleTest extends \PHPUnit\Framework\TestCase
     {
         return M\bind(function (string $resp) {
             return Console\formatOutput($resp);
-        }, $response); 
+        }, $response);
     }
 
     public function mockParser(string $cmd, string $data = '') : IO
@@ -54,12 +54,12 @@ class ConsoleTest extends \PHPUnit\Framework\TestCase
                     $res = $http->mockHttpFetch(
                         [
                             'docById' => [
-                                '{db}' => $database, 
-                                '{docId}' => $docId, 
+                                '{db}' => $database,
+                                '{docId}' => $docId,
                                 '{params}' => 'include_docs=true'
                             ]
                         ],
-                        [200, 'GET', State::COUCH_REQHEADERS, $data]    
+                        [200, 'GET', State::COUCH_REQHEADERS, $data]
                     );
                     return self::decodeResponse($res);
                 },
@@ -74,7 +74,7 @@ class ConsoleTest extends \PHPUnit\Framework\TestCase
                     $res = $http->mockHttpFetch(
                         [
                             'allDocs' => [
-                                '{db}' => $database, 
+                                '{db}' => $database,
                                 '{params}' => 'include_docs=true'
                             ]
                             ],

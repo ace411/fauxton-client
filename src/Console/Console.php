@@ -1,16 +1,17 @@
 <?php
 
 /**
- * 
+ *
  * fauxton-client console functions
- * 
+ *
  * @author Lochemem Bruno Michael
  * @license Apache-2.0
  */
 
 namespace Chemem\Fauxton\Console;
 
-use Chemem\Fauxton\{Http, Actions};
+use Chemem\Fauxton\Http;
+use Chemem\Fauxton\Actions;
 use Chemem\Fauxton\Config\State;
 use JakubOnderka\PhpConsoleColor\ConsoleColor;
 use \Chemem\Bingo\Functional\Algorithms as A;
@@ -57,7 +58,7 @@ function execCmd(string $cmd) : IO
                 return _multipleDocs($database);
             },
             '["db", database]' => function (string $database) {
-                return _dbData($database);                
+                return _dbData($database);
             },
             '["config", cmd]' => function (string $cmd) {
                 return _printConfig($cmd);
